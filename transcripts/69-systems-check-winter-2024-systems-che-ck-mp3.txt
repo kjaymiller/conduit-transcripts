@@ -3,7 +3,7 @@ description: "Nice! A Systems Check! Things are going well for Kathy’s system 
   Jay just wants to vent. Also some mid episode madness as we recorded later and that
   always makes things hectic! \r\n\r\nAlso! New designs at YouConWearIt.com"
 pub_date: February 22nd, 2024
-title: Relay FM
+title: '69: Systems Check Winter 2024: Systems Che….ck'
 url: https://relay.fm/conduit/69
 ---
 

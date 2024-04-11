@@ -2,7 +2,7 @@
 description: Do you have a tendency to overplan? Jay and Kathy talk about how they
   combat over-planning as Jay gets ready for his new gig!
 pub_date: April 21st, 2022
-title: Relay FM
+title: '21: Plan To Be Flexible'
 url: https://relay.fm/conduit/21
 ---
 

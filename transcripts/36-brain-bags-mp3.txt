@@ -2,7 +2,7 @@
 description: Kathy is away so Jay has brought bag and electronics YouTuber PK Shiu
   to the show to talk about what we learn in our side-hustles.
 pub_date: November 17th, 2022
-title: Relay FM
+title: "36: Brain Bags \U0001F9E0 \U0001F392\U0001F45C\U0001F45B"
 url: https://relay.fm/conduit/36
 ---
 

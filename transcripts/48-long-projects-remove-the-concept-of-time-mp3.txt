@@ -4,7 +4,7 @@ description: We've got a longer than usual period between our next live recordin
   how we're going about it and longer projects in general. Are we just making it up
   as we go along?
 pub_date: May 4th, 2023
-title: Relay FM
+title: '48: Long Projects: Remove the Concept of Time'
 url: https://relay.fm/conduit/48
 ---
 

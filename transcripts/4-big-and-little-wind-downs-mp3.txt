@@ -3,7 +3,7 @@ description: Winding tasks down is important to make that transition to the next
   as smooth as possible. Kathy and Jay share how they perform Big and Little wind
   downs every day!
 pub_date: August 26th, 2021
-title: Relay FM
+title: '4: Big and Little Wind Downs'
 url: https://relay.fm/conduit/4
 ---
 

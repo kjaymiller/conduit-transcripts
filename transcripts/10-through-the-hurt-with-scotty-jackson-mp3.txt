@@ -4,7 +4,7 @@ description: Sometimes, life hits us hard and we have to try and be productive e
   to explain to us how he strives to remain productive even when dealing with chronic
   pain.
 pub_date: November 18th, 2021
-title: Relay FM
+title: '10: Through the Hurt with Scotty Jackson'
 url: https://relay.fm/conduit/10
 ---
 

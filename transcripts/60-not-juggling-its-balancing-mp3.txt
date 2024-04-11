@@ -3,7 +3,7 @@ description: Jay is gone on a super secret trip so Kathy brings on the Canadian 
   Card Enthusiast of the Show Erika Ensign to talk about juggling multiple careers
   and life.
 pub_date: October 19th, 2023
-title: Relay FM
+title: '60: Not Juggling, It’s Balancing'
 url: https://relay.fm/conduit/60
 ---
 

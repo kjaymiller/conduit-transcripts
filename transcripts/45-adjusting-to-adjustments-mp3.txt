@@ -3,7 +3,7 @@ description: We had to adjust to our last show and then make adjustment to the a
   Because we’re pros and pros don’t do everything perfectly. They do things and then
   adjust to the results!
 pub_date: March 23rd, 2023
-title: Relay FM
+title: '45: Adjusting to Adjustments'
 url: https://relay.fm/conduit/45
 ---
 

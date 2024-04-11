@@ -2,7 +2,7 @@
 description: Jay and Kathy go on a journey of what it means to be the face of something
   and how to adjust how that affects your day to day choices.
 pub_date: August 25th, 2022
-title: Relay FM
+title: '30: Facing the Reality of Being a Face'
 url: https://relay.fm/conduit/30
 ---
 

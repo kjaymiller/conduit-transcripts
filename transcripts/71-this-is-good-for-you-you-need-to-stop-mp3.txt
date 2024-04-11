@@ -3,7 +3,7 @@ description: "Good things are good except for when they're not. \r\n\r\nJay and 
   share some of the things they've stopped doing because it's better than good if
   we just don't. "
 pub_date: March 21st, 2024
-title: Relay FM
+title: '71: This Is Good For You…You Need To Stop'
 url: https://relay.fm/conduit/71
 ---
 

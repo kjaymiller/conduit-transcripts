@@ -2,7 +2,7 @@
 description: How does productivity differ when you’re doing it live! Is Vibing allowed?
   What happens when something goes wrong and you can’t just stop to do another take?
 pub_date: December 16th, 2021
-title: Relay FM
+title: '12: Con Doing It Live!'
 url: https://relay.fm/conduit/12
 ---
 

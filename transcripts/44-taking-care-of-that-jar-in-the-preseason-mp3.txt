@@ -2,7 +2,7 @@
 description: Bring out the sports metaphors. Or your canning metaphor. Whatever you
   relate to learn how to prepare for the time where spoons are limited. Yay! Metaphors!
 pub_date: March 9th, 2023
-title: Relay FM
+title: '44: Taking Care of That Jar in the PreSeason'
 url: https://relay.fm/conduit/44
 ---
 

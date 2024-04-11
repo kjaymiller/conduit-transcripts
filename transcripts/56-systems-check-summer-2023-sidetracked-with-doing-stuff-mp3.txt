@@ -3,7 +3,7 @@ description: It’s time already for another systems check and our hosts are… 
   Jay’s trying something new (and it’s not here yet!) and Kathy can’t even or odd
   so learn how they hope to manage in the next quarter.
 pub_date: August 24th, 2023
-title: Relay FM
+title: '56: Systems Check Summer 2023: Sidetracked With Doing Stuff'
 url: https://relay.fm/conduit/56
 ---
 

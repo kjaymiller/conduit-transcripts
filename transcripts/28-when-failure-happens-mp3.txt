@@ -4,7 +4,7 @@ description: "Toxic productivity & toxic positivity are just that: TOXIC. \r\nFa
   \r\nThis week, we share some failure & discuss how we change our own red circles
   to green or yellow ones."
 pub_date: July 28th, 2022
-title: Relay FM
+title: '28: When Failure Happens'
 url: https://relay.fm/conduit/28
 ---
 

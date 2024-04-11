@@ -3,7 +3,7 @@ description: Jay and Kathy delve into the tools they use for keeping track of th
   regular life things. Jay unveils his secret weapon and Kathy raises some very important
   holes in Jay’s plan!
 pub_date: January 11th, 2024
-title: Relay FM
+title: '66: I Wish I had a Britnie'
 url: https://relay.fm/conduit/66
 ---
 

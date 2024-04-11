@@ -3,7 +3,7 @@ description: "Jay and Kathy talk about themes, reflections, perspectives and mot
   in preparation for the new year. \r\n\r\nIt's been a magnificent year for the hosts
   and we hope to make 2024 even better. "
 pub_date: December 28th, 2023
-title: Relay FM
+title: '65: Embracing the Chaos being Toxic and Positive'
 url: https://relay.fm/conduit/65
 ---
 

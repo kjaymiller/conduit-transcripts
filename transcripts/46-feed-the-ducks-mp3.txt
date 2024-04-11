@@ -3,7 +3,7 @@ description: "When life gives you rain and a leaky roof, a flooded backyard, and
   stresses, go outside with a bowl of cheerios and feed some ducks.  \r\n\r\nVisit
   IMASuperconductor.com to hear the aftershow where Jay and Kathy rank board games"
 pub_date: April 6th, 2023
-title: Relay FM
+title: "46: Feed the Ducks \U0001F986"
 url: https://relay.fm/conduit/46
 ---
 

@@ -2,7 +2,7 @@
 description: Jay has an announcement to share with the Conduit Conductors and there
   may be a new corhuahua in Kathy’s life.
 pub_date: April 7th, 2022
-title: Relay FM
+title: '20: Living in a World Where ''And'' Exists'
 url: https://relay.fm/conduit/20
 ---
 

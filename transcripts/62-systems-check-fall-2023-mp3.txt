@@ -2,7 +2,7 @@
 description: It's a systems check. Jay is prepping for 2024 and Kathy is in her "Artistically
   Productive" groove.
 pub_date: November 16th, 2023
-title: Relay FM
+title: '62: Systems Check Fall 2023'
 url: https://relay.fm/conduit/62
 ---
 

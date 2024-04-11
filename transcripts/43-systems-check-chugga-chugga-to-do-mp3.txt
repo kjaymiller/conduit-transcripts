@@ -3,7 +3,7 @@ description: "Lorem Ipsum Pikachu Conduit\r\n\r\nCheck for rags! In this episode
   looking at how we plan for the long term and look to add (if only temporarily) to
   our systems."
 pub_date: February 23rd, 2023
-title: Relay FM
+title: '43: Systems Check: Chugga Chugga To DO'
 url: https://relay.fm/conduit/43
 ---
 

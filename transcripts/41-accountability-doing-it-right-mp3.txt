@@ -4,7 +4,7 @@ description: Accountability is a common theme in productivity, but how do you do
   Super Conductor! The Conduit Membership that includes extra content, no ads, and
   a fortnightly meetup!
 pub_date: January 26th, 2023
-title: Relay FM
+title: '41: Accountability: Doing it Right'
 url: https://relay.fm/conduit/41
 ---
 

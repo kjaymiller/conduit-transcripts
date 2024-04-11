@@ -2,7 +2,7 @@
 description: What do our hosts do, what do they want to do and for how long? Are they
   ready for the next 5 years?
 pub_date: January 25th, 2024
-title: Relay FM
+title: '67: Plan but Be Ready To Pivot'
 url: https://relay.fm/conduit/67
 ---
 

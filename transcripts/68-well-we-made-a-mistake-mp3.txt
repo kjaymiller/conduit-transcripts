@@ -3,7 +3,7 @@ description: Mistakes happen and that’s okay. This is a podcast that emphasize
   and we’re talking about being accountable for mistakes and how to handle mistakes
   from others that affect you.
 pub_date: February 8th, 2024
-title: Relay FM
+title: '68: Well, We Made A Mistake'
 url: https://relay.fm/conduit/68
 ---
 

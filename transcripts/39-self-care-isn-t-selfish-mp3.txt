@@ -3,7 +3,7 @@ description: "Stop and Start.\r\nMore and Less.\r\nEnds and Beginnings.\r\n\r\nT
   end of the year is here so Jay and Kathy are working on what to end and what to
   begin when coming into 2023. Also, is Kathy ending Jay’s tenure on the show?!"
 pub_date: December 29th, 2022
-title: Relay FM
+title: '39: Self Care Isn''t Selfish'
 url: https://relay.fm/conduit/39
 ---
 

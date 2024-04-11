@@ -2,7 +2,7 @@
 description: 'Kathy is joined by returning guest host Scotty J to discuss spoon and
   energy management as our lives increase in scope and changes. '
 pub_date: July 14th, 2022
-title: Relay FM
+title: '27: These Are The Spoons You Have'
 url: https://relay.fm/conduit/27
 ---
 

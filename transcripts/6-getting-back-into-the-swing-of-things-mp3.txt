@@ -3,7 +3,7 @@ description: Why is there no baseball bat emoji? Nevermind. This week, we’re t
   to get back into the “swing” of things. Jay share’s how he structures brain dumps
   to do just that.
 pub_date: September 23rd, 2021
-title: Relay FM
+title: "6: Getting back into the Swing of Things \U0001F3CF"
 url: https://relay.fm/conduit/6
 ---
 

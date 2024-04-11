@@ -3,7 +3,7 @@ description: This week we have a special guest to talk about their new project, 
   old project, jay's projects, and starting, stopping, and gambling on projects....
   (if you got to know, you know.)
 pub_date: June 30th, 2022
-title: Relay FM
+title: "26: The Content Dragon Appears! \U0001F499\U0001F409 "
 url: https://relay.fm/conduit/26
 ---
 

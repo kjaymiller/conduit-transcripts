@@ -2,7 +2,7 @@
 description: It's time to fill up the TIREs and get ready for liftoff as we explore
   the final frontier before a good decision!
 pub_date: November 4th, 2021
-title: Relay FM
+title: '9: Decision Space (The TIRE Technique)'
 url: https://relay.fm/conduit/9
 ---
 

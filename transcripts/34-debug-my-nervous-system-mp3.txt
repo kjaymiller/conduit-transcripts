@@ -2,7 +2,7 @@
 description: While Jay is off keynoting, Kathy brings James Thomson in to talk about
   living with chronic pain and being kind to yourself.
 pub_date: October 20th, 2022
-title: Relay FM
+title: '34: Debug My Nervous System'
 url: https://relay.fm/conduit/34
 ---
 

@@ -2,7 +2,7 @@
 description: Looking to get away from the madness? Well, get some fun sounds and learn
   how to get away with us!
 pub_date: August 12th, 2021
-title: Relay FM
+title: '3: Getting Away, Now!'
 url: https://relay.fm/conduit/3
 ---
 

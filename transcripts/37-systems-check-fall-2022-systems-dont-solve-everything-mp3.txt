@@ -2,7 +2,7 @@
 description: The bestest of system names for the bestest of friends. Kathy and Jay
   talk about the changes their systems have had and why it's okay to be dynamic.
 pub_date: December 1st, 2022
-title: 'Systems Don’t Solve Everything '
+title: '37: Systems Check Fall 2022 - Systems Don’t Solve Everything '
 url: https://relay.fm/conduit/37
 ---
 

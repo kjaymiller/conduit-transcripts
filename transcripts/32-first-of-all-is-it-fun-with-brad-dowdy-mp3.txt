@@ -1,7 +1,7 @@
 ---
 description: 'Relay FM | Conduit #32: First of all, Is it Fun? With Brad Dowdy'
 pub_date: September 22nd, 2022
-title: Relay FM
+title: '32: First of all, Is it Fun? With Brad Dowdy'
 url: https://relay.fm/conduit/32
 ---
 

@@ -2,7 +2,7 @@
 description: We all want the new hotness, but with chip shortages and inflation, it
   seems like we’ll need to make do with what we have.
 pub_date: May 19th, 2022
-title: Relay FM
+title: '23: Making Do With What We Have'
 url: https://relay.fm/conduit/23
 ---
 

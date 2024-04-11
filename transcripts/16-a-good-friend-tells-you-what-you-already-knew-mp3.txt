@@ -2,7 +2,7 @@
 description: Whether the Bees are Buzzing or there are no bones or spoons, thank you
   for being a friend and telling me the thing I needed to hear.
 pub_date: February 10th, 2022
-title: Relay FM
+title: '16: A Good Friend Tells You What You Already Knew'
 url: https://relay.fm/conduit/16
 ---
 

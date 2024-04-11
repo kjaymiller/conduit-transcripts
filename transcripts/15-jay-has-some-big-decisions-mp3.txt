@@ -3,7 +3,7 @@ description: Jay had some life happen and now he needs to make some decisions. K
   is here to help break down the BIG focus and how to put all the choices through
   the right frame of mind.
 pub_date: January 27th, 2022
-title: Relay FM
+title: '15: Jay Has Some Big Decisions '
 url: https://relay.fm/conduit/15
 ---
 

@@ -3,7 +3,7 @@ description: 'Jay is on location for a secret project so Kathy pulls in her othe
   favorite cohost: Alex Cox! They both go deep into mental health in the workplace
   and how it affects everything.'
 pub_date: June 1st, 2023
-title: Relay FM
+title: '50: Friendship HIPAA'
 url: https://relay.fm/conduit/50
 ---
 

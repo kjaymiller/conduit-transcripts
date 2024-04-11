@@ -2,7 +2,7 @@
 description: Do you write it down to remember it now, later, or NEVER! Let's talk
   about how we take notes.
 pub_date: June 29th, 2023
-title: Relay FM
+title: '52: NOTES! That right there, that’s a good thing '
 url: https://relay.fm/conduit/52
 ---
 

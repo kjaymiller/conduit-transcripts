@@ -3,7 +3,7 @@ description: "Space: The final frontier.\r\nThese are the voyages of the Starshi
   Conduit\r\nIts continuing mission: to explore strange new productivity systems.\r\n\r\nJoin
   Kathy and Jay as they discuss space and the environment you work in."
 pub_date: February 24th, 2022
-title: Relay FM
+title: '17: Space, and Related Subjects, For Your Productivity'
 url: https://relay.fm/conduit/17
 ---
 

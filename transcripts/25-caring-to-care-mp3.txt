@@ -3,7 +3,7 @@ description: 'Conduit Cares and Gives Care. We''re talking about caregiving. Car
   for others and Caring for ourselves.  We hope you''ll care to to listen to this
   heartfelt episode. '
 pub_date: June 16th, 2022
-title: Relay FM
+title: '25: Caring to Care'
 url: https://relay.fm/conduit/25
 ---
 

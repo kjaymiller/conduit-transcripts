@@ -3,7 +3,7 @@ description: "The answer is…. Well not that important.\r\n\r\nIn this episode,
   uncover our preference of solutions over answers and hope to solve an important
   question. \r\n\r\n“What did we learn from all of this?”"
 pub_date: February 9th, 2023
-title: Relay FM
+title: '42: We Asked a Lot of Questions'
 url: https://relay.fm/conduit/42
 ---
 

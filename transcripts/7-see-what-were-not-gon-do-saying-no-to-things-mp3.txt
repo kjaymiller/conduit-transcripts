@@ -2,7 +2,7 @@
 description: We know we're supposed to say no but we don't! So let's talk about tips
   to saying no to ourselves and others.
 pub_date: October 7th, 2021
-title: Relay FM
+title: '7: See, What We’re Not Gon’ Do… Saying No to Things!'
 url: https://relay.fm/conduit/7
 ---
 

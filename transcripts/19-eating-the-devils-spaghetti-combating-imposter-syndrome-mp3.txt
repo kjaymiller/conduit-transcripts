@@ -2,7 +2,7 @@
 description: How do we learn to shut up and take the compliment? How about with a
   fresh bowl of imp-pasta!
 pub_date: March 24th, 2022
-title: Relay FM
+title: '19: Eating the Devil’s Spaghetti: Combating Imposter Syndrome'
 url: https://relay.fm/conduit/19
 ---
 

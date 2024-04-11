@@ -3,7 +3,7 @@ description: Whether it's themes, goals, resolutions, or just living by the seat
   your pants, you have to make sure the expectations you set for yourself match how
   the way you (Con) do things.
 pub_date: January 13th, 2022
-title: Relay FM
+title: '14: Giving Ourselves the Appropriate Amount of Expectations'
 url: https://relay.fm/conduit/14
 ---
 

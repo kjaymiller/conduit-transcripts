@@ -2,7 +2,7 @@
 description: You know what's really spooky? SUCCESS... This episode is about being
   afraid to succeed.
 pub_date: October 21st, 2021
-title: Relay FM
+title: '8: Fear of Success, Because if I Succeed…'
 url: https://relay.fm/conduit/8
 ---
 

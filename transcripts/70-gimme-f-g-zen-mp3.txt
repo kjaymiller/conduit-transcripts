@@ -3,7 +3,7 @@ description: "Kathy and Jay are having long weeks and when times get tough we lo
   to find zen in a variety of places. \r\n\r\nWe talk about music games and conversations
   that add a little chill to our frantic lives. "
 pub_date: March 7th, 2024
-title: Relay FM
+title: '70: Gimme F&!!#&g Zen'
 url: https://relay.fm/conduit/70
 ---
 

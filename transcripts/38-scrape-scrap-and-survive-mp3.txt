@@ -3,7 +3,7 @@ description: "It's the end of the year and people are planning. Also people are 
   to succeed but what does that look like and how do you help others reach it?\r\n\r\nThis
   week, we answer a listener question: \"how do you mentor folks afraid of success?\""
 pub_date: December 15th, 2022
-title: Relay FM
+title: '38: Scrape, Scrap, and Survive'
 url: https://relay.fm/conduit/38
 ---
 

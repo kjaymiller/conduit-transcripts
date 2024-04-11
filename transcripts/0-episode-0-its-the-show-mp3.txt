@@ -3,7 +3,7 @@ description: Internet Unicorn Kathy Campbell and Developer Advocate Jay Miller l
   what they do. They also love productivity and how personal it can feel. Welcome
   to the new show where they share that love and realness with you!
 pub_date: July 9th, 2021
-title: It’s the Show!
+title: '0: Episode 0 - It’s the Show!'
 url: https://relay.fm/conduit/0
 ---
 

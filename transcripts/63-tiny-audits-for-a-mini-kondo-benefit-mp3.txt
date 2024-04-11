@@ -3,7 +3,7 @@ description: The crew is taking inventory of the little things. In this episode,
   talk about the power of an audit. Jay is checking in on little things and is seeing
   improvements already.
 pub_date: November 30th, 2023
-title: Relay FM
+title: '63: Tiny Audits For a Mini-Kondo Benefit'
 url: https://relay.fm/conduit/63
 ---
 

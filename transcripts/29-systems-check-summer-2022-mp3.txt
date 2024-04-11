@@ -3,7 +3,7 @@ description: Kathy and Jay’s systems have changed a lot since Episode 1 and so
   Kathy and Jay. This episode is the first of a quarterly look at the changes that
   have taken place and what brought them about.
 pub_date: August 11th, 2022
-title: Relay FM
+title: '29: Systems Check Summer 2022 ✅'
 url: https://relay.fm/conduit/29
 ---
 

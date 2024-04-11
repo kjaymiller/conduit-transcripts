@@ -3,7 +3,7 @@ description: "Why is it the little things that give us pause?\r\n\r\nIn this epi
   we talk about the most challenging of tasks, like doing TikToks and sending mail.
   Are printers out to get us? Yes. "
 pub_date: June 2nd, 2022
-title: Relay FM
+title: '24: Tiny Annoying Tasks'
 url: https://relay.fm/conduit/24
 ---
 

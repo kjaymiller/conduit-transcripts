@@ -2,7 +2,7 @@
 description: Jay found his rhythm and rocked the stage. Kathy finds her rhythm in
   calls with business owners... Where do you find yours?
 pub_date: September 21st, 2023
-title: Relay FM
+title: '58: Finding Your Rhythm'
 url: https://relay.fm/conduit/58
 ---
 
