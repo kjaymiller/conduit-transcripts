@@ -1,2 +1,4 @@
 typer
 python-slugify
+python-frontmatter
+gazpacho
