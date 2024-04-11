@@ -19,6 +19,10 @@ def append_frontmatter_to_directory(directory:pathlib.Path) -> None:
     """Prepend frontmatter to all files in a directory."""
     for filepath in directory.iterdir():
         if filepath.is_file():
-            yield append_frontmatter_to_file(filepath)
-        elif file.is_dir():
+            try:
+                append_frontmatter_to_file(filepath)
+            except UnicodeDecodeError:
+                print(f"Could not process {filepath} due to a decoding error")
+                continue
+        elif filepath.is_dir():
             append_frontmatter_to_directory(filepath)
