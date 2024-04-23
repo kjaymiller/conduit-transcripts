@@ -12,5 +12,3 @@ def fix_spelling(file: str):
         content = content.replace(values[0], values[1])
     with open(file, "w") as f:
         f.write(content)
-
-    print(f"test {file}")
