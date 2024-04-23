@@ -1,15 +1,16 @@
 import os
-dirname = os.path.dirname(__file__)
-ff = [os.path.join(dirname, "transcripts", f) for f in os.listdir(os.path.join(dirname, "transcripts")) if os.path.isfile(
-    os.path.join(dirname, "transcripts", f))]
+import json
 
-for file in ff:
-    with open(file, "r") as f:
+
+def fix_spelling(file: str):
+    dirname = os.path.dirname(__file__)
+    t = open(os.path.join(dirname, "corrections.json"))
+    jsonF = json.load(t)
+    with open(os.path.join(dirname, "current", file), "r") as f:
         content = f.read()
-    content = content.replace("Cathy", "Kathy")
+    for values in jsonF["correctionsNeeded"]:
+        content = content.replace(values[0], values[1])
     with open(file, "w") as f:
         f.write(content)
 
-
-def main(name: str):
-    print(f"test {name}")
+    print(f"test {file}")
