@@ -1,0 +1,37 @@
+# Workflow will add the transcript to the transcript folder and do actions like slugify and check for spelling
+
+name: Run Typer
+
+on:
+    pull_request:
+        types:
+            - "opened"
+        paths:
+            - "/current/**.txt"
+
+jobs:
+    typer:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v3
+            - name: Set up Python 3.12
+              uses: actions/setup-python@v3
+              with:
+                  python-version: "3.12"
+            - name: Install dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+            - name: Run slugify
+              run: |
+                  typer slugify_local.py run current/**.txt
+            - name: Run spelling
+              run: |
+                  typer spelling.py run current/**.txt
+            - name: Run generate_frontmatter
+              run: |
+                  typer run generate_frontmatter.py run current/**.txt
+            - name: Run update_names
+              run: |
+                  typer update_names.py run current/**.txt

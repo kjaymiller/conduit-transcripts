@@ -9,3 +9,7 @@ for file in ff:
     content = content.replace("Cathy", "Kathy")
     with open(file, "w") as f:
         f.write(content)
+
+
+def main(name: str):
+    print(f"test {name}")
