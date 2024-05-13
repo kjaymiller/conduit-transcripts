@@ -1,8 +1,11 @@
+import pathlib
 import os
+
 import arrow
 import frontmatter
-from sqlalchemy import create_engine, Session
-from sqlalchemy.orm import DeclarativeBase
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, Session
 from typing import Optional
 from sqlalchemy import String
 from sqlalchemy.orm import (
@@ -10,6 +13,8 @@ from sqlalchemy.orm import (
     mapped_column,
 )
 from sqlalchemy.types import Date
+
+load_dotenv()
 
 class Base(DeclarativeBase):
     pass
@@ -32,7 +37,7 @@ Base.metadata.create_all(engine)
 fmt = r"MMMM[\s+]D[\w+,\s+]YYYY"
 
 def load_episode_from_file(file_path:pathlib.Path) -> Episode:
-    post = frontmatter.load(file)
+    post = frontmatter.loads(file_path.read_text())
     episode = Episode(
         title=post["title"],
         content=post.content,

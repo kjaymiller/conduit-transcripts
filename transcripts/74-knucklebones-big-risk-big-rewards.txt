@@ -1,6 +1,6 @@
 ---
 title: '74: Knucklebones: Big Risk, Big Rewards'
-date: May 2nd, 2024
+pub_date: May 2nd, 2024
 description: 'Jay and Kathy are back from traveling and they took some risks that seem to have paid off. Jay found a new game and talks about how they like to handle big risks.'
 url: https://www.relay.fm/conduit/74
 ---
