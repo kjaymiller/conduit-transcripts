@@ -1,0 +1,40 @@
+name: Upload File
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+    paths:
+      - 'transcripts/**'
+
+jobs:
+    upload:
+        runs-on: ubuntu-latest
+
+        steps:
+        - name: Checkout repository
+          uses: actions/checkout@v2
+        
+        - name: Set up Python
+          uses: actions/setup-python@v5
+          with:
+            python-version: '3.x'
+            cache: 'pip'
+
+        - name: Install dependencies
+          run: |
+            pip install -r requirements.txt
+            
+        - name: set env
+          run: |
+            echo "::set-output name=files::$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep 'transcripts/')"
+        
+        - name: Upload file
+          run: |
+            IFS=" " read -r -a files <<< "${{ steps.getfile.outputs.files }}"
+            for file in "${files[@]}"
+            do
+              python -m typer --func load_episode_from_file upload_file.py run "$file"
+            done
