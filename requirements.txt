@@ -2,3 +2,5 @@ typer
 python-slugify
 python-frontmatter
 gazpacho
+sqlalchemy
+psycopg2-binary
