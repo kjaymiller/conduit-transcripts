@@ -1,3 +1,7 @@
+opensearch-py
+python-dotenv
+sentence-transformers
+langchain-community
 typer
 python-slugify
 python-frontmatter

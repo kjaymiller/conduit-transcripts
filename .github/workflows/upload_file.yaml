@@ -1,9 +1,7 @@
 name: Upload File
 
 on:
-  pull_request:
-    types:
-      - closed
+  push:
     paths:
       - 'transcripts/**'
 
@@ -30,9 +28,15 @@ jobs:
             echo "::set-output name=files::$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep 'transcripts/')"
         
         - name: Upload file
+          env:
+            OPENSEARCH_SERVICE_URI: ${{ secrets.OPENSEARCH_SERVICE_URI }}
+            POSTGRES_SERVICE_URI: ${{ secrets.POSTGRES_SERVICE_URI }}
           run: |
             IFS=" " read -r -a files <<< "${{ steps.getfile.outputs.files }}"
             for file in "${files[@]}"
+            // if the file is a transcript file, upload it
             do
-              python -m typer --func load_episode_from_file upload_file.py run "$file"
+              if [[ $file == *"transcripts/"* ]]; then
+                python -m tools/quick_upload.py "$file"
+              fi
             done
