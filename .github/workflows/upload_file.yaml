@@ -34,7 +34,7 @@ jobs:
           run: |
             IFS=" " read -r -a files <<< "${{ steps.getfile.outputs.files }}"
             for file in "${files[@]}"
-            // if the file is a transcript file, upload it
+            
             do
               if [[ $file == *"transcripts/"* ]]; then
                 python -m tools/quick_upload.py "$file"
