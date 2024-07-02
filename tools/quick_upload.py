@@ -24,8 +24,8 @@ def load_data_from_file(
     if file.parent.name != "transcripts":
         raise ValueError("File must be in the transcripts directory.")
     
-    os_ingest = os_load_data_from_file(file)
-    pg_ingest = pg_load_from_file(file)
+    os_load_data_from_file(file)
+    pg_load_from_file(file)
     
 
 if __name__ == "__main__":

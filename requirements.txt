@@ -1,7 +1,7 @@
 opensearch-py
 python-dotenv
 sentence-transformers
-langchain-community
+langchain-huggingface
 typer
 python-slugify
 python-frontmatter

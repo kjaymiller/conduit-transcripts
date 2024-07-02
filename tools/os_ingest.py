@@ -5,7 +5,7 @@ import uuid
 
 import arrow
 from dotenv import load_dotenv
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from opensearchpy import OpenSearch, helpers
 
