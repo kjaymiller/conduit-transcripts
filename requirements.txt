@@ -8,3 +8,5 @@ python-frontmatter
 gazpacho
 sqlalchemy
 psycopg2-binary
+httpx
+openai-whisper
