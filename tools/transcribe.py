@@ -1,12 +1,14 @@
 """Use Whisper to transcribe audio files to text."""
 
 import pathlib
-import typer
 import tempfile
+import typing
 
-import slugify
+from rich.progress import track 
 import frontmatter
 import httpx
+import slugify
+import typer
 import whisper
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -92,7 +94,7 @@ def transcribe_from_audio_url(audio_url: str) -> int:
     return transcribe_audio_file(audio_file)
 
 
-def transcribe_from_episode_number(episode_number: int):
+def transcribe_from_episode_number(episode_numbers: typing.List[int]):
     """
     Transcribe an episode from an episode number
 
@@ -100,11 +102,12 @@ def transcribe_from_episode_number(episode_number: int):
 
     Audio is downloaded from the extracted audio_url.
     """
-    metadata, audio_url = get_audio_url_from_episode_number(episode_number)
-    transcription = transcribe_from_audio_url(audio_url)
-    post = frontmatter.Post(transcription, **metadata)
-    output_file = pathlib.Path(f"transcripts/{slugify.slugify(metadata['title'])}.md")
-    output_file.write_text(frontmatter.dumps(post))
+    for episode_number in track(episode_numbers):
+        metadata, audio_url = get_audio_url_from_episode_number(episode_number)
+        transcription = transcribe_from_audio_url(audio_url)
+        post = frontmatter.Post(transcription, **metadata)
+        output_file = pathlib.Path(f"transcripts/{slugify.slugify(metadata['title'])}.md")
+        output_file.write_text(frontmatter.dumps(post))
 
 
 
