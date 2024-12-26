@@ -12,7 +12,7 @@ import typer
 import whisper
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from url_finder import get_audio_url_from_episode_number
+from url_finder import get_audio_url_from_episode_number, fetch_latest_episode_number
 
 app = typer.Typer()
 
@@ -94,7 +94,7 @@ def transcribe_from_audio_url(audio_url: str) -> int:
     return transcribe_audio_file(audio_file)
 
 
-def transcribe_from_episode_number(episode_numbers: typing.List[int]):
+def transcribe_from_episode_number(episode_numbers: typing.Optional[typing.List[int]]=None):
     """
     Transcribe an episode from an episode number
 
@@ -102,6 +102,11 @@ def transcribe_from_episode_number(episode_numbers: typing.List[int]):
 
     Audio is downloaded from the extracted audio_url.
     """
+
+    if not episode_numbers:
+        typer.echo("Fetching Latest Episode Number")
+        episode_numbers = [fetch_latest_episode_number()]
+
     for episode_number in track(episode_numbers):
         metadata, audio_url = get_audio_url_from_episode_number(episode_number)
         transcription = transcribe_from_audio_url(audio_url)
