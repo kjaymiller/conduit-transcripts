@@ -1,3 +1,4 @@
+beautifulsoup4
 opensearch-py
 python-dotenv
 sentence-transformers
@@ -5,7 +6,6 @@ langchain-huggingface
 typer
 python-slugify
 python-frontmatter
-gazpacho
 sqlalchemy
 psycopg2-binary
 httpx
