@@ -1,5 +1,6 @@
 """Use Whisper to transcribe audio files to text."""
 
+from os import name
 import pathlib
 import tempfile
 import typing
@@ -16,10 +17,7 @@ from rich.prompt import Confirm
 from url_finder import fetch_latest_episode_number, get_audio_url_from_episode_number
 
 app = typer.Typer()
-
 model = whisper.load_model("base")
-
-
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=300,
     separators=[".", "!", "?", "\n"],
@@ -30,9 +28,7 @@ splitter = RecursiveCharacterTextSplitter(
 
 def download_audio_file(url: str) -> str:
     """
-    Stream Download an audio file from a URL.
-
-    Save the audio file to a temporary file.
+    Stream Download an audio file from a URL. Save the audio file to a temporary file.
 
     Args:
         url: The URL of the audio file.
@@ -56,7 +52,29 @@ def download_audio_file(url: str) -> str:
 def transcribe_audio_file(audio_file: pathlib.Path) -> str:
     """Transcribe an audio file to text"""
 
-    return model.transcribe(audio=audio_file, verbose=False)["text"]
+    audio = whisper.load_audio(str(audio_file))
+    transcription = model.transcribe(audio=audio, verbose=False)
+
+    return transcription["text"]
+
+
+@app.command(name="file")
+def transcribe_file(
+    input_file: typing_extensions.Annotated[
+        pathlib.Path,
+        typer.Argument(exists=True, file_okay=True, dir_okay=False),
+    ],
+    output_file: typing_extensions.Annotated[
+        typing.Optional[pathlib.Path],
+        typer.Option("--output", exists=True, file_okay=True, dir_okay=False),
+    ] = None,
+):
+
+    transcription = transcribe_audio_file(audio_file=input_file)
+    if not output_file:
+        output_file = input_file.absolute().with_suffix(".txt")
+
+    return output_file.write_text(transcription)
 
 
 def transcribe_from_audio_url(audio_url: str) -> int:
@@ -65,6 +83,7 @@ def transcribe_from_audio_url(audio_url: str) -> int:
     return transcribe_audio_file(audio_file)
 
 
+@app.command(name="ep")
 def transcribe_from_episode_number(
     episode_numbers: typing.Optional[typing.List[int]] = None,
     all: typing_extensions.Annotated[
@@ -114,4 +133,4 @@ def transcribe_from_episode_number(
 
 
 if __name__ == "__main__":
-    typer.run(transcribe_from_episode_number)
+    app()
