@@ -13,7 +13,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from rich.progress import track
 from rich.prompt import Confirm
 from transcriber import HybridTranscriber
-from url_finder import fetch_latest_episode_number, get_audio_url_from_episode_number
+from rss_feed import fetch_latest_episode_number, fetch_episode_by_number
 
 app = typer.Typer()
 transcriber = HybridTranscriber(model="base", prefer_mlx=True)
@@ -115,8 +115,27 @@ def transcribe_from_episode_number(
         episode_numbers = [fetch_latest_episode_number()]
 
     for episode_number in track(episode_numbers):
-        metadata, audio_url = get_audio_url_from_episode_number(episode_number)
+        episode = fetch_episode_by_number(episode_number)
+        if not episode:
+            typer.echo(f"Could not find episode {episode_number}", err=True)
+            continue
+
+        # Extract audio URL from episode data
+        audio_url = episode.get("audio_url")
+        if not audio_url:
+            typer.echo(f"No audio URL found for episode {episode_number}", err=True)
+            continue
+
         transcription = transcribe_from_audio_url(audio_url)
+
+        # Prepare metadata for frontmatter
+        metadata = {
+            "title": episode["title"],
+            "url": episode["url"],
+            "description": episode["description"],
+            "pub_date": episode["pub_date"],
+        }
+
         post = frontmatter.Post(
             "\n".join(splitter.split_text(transcription)), **metadata
         )

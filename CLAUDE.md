@@ -37,9 +37,12 @@ This is a podcast transcript management system for the Conduit Podcast. It autom
   - `quick_upload.py` - Unified data loading script for both OpenSearch and PostgreSQL
   - `pg_ingest.py` - PostgreSQL data processing with embeddings and vector storage
   - `mcp_server.py` - **MCP server for transcript search and summarization**
+  - `transcribe.py` - Main script for Whisper transcription and episode processing
+  - `url_finder.py` - Web scraping for Conduit website (episode metadata, audio URLs)
   - `os_ingest.py` - OpenSearch data ingestion (incomplete/skeleton)
   - `os_index.py` - OpenSearch index creation and setup
   - `download_audio_file.py` - Audio file download utility
+  - `transcriber.py` - Hybrid transcriber supporting both MLX and OpenAI Whisper
 - `transcripts/` - Generated markdown files with frontmatter metadata and transcribed content
 - `infra/` - Infrastructure configuration files
   - `init-db.sql` - PostgreSQL database initialization script
@@ -294,10 +297,36 @@ Load environment with `direnv allow` or `source .envrc` manually.
 
 ## Development Notes
 
+<<<<<<< HEAD
 - **Transcription Backend Selection**: The system automatically prefers MLX Whisper on Apple Silicon for performance, falling back to OpenAI Whisper. First run downloads the model (~140MB for "base" model).
 - **Web Scraping**: The `url_finder.py` module is tightly coupled to the Conduit website structure (CSS selectors for `.episode-wrap`, `<title>`, `<audio>` tags). Changes to the website layout will require updates here.
 - **Episode Number Extraction**: Uses regex pattern `^\d+` to extract episode numbers from titles and markdown filenames.
 - **Date Parsing**: Uses Arrow with custom format `r"MMMM[\s+]D[\w+,\s+]YYYY"` for publication dates.
+||||||| parent of a4a2d51 (uses feedparser to update content)
+- **Web Scraping**: The `url_finder.py` module is tightly coupled to the Conduit website structure (CSS selectors for `.episode-wrap`, `<title>`, `<audio>` tags). Changes to the website layout will require updates here.
+- **Episode Number Extraction**: Uses regex pattern `^\d+` to extract episode numbers from titles and markdown filenames.
+- **Date Parsing**: Uses Arrow with custom format `r"MMMM[\s+]D[\w+,\s+]YYYY"` for publication dates.
+=======
+### Episode Metadata Fetching
+
+The project uses **RSS feed parsing** (via `rss_feed.py`) to fetch episode metadata instead of web scraping. This approach:
+- **Resilient to Layout Changes**: RSS feeds are standardized, so website redesigns don't break metadata extraction
+- **Reliable**: Uses `feedparser` library (actively maintained) to parse Conduit's RSS feed
+- **All Metadata Extracted**: Pulls title, description, publication date, audio URL, and episode number directly from the feed
+- **Conduit RSS Feed**: https://www.relay.fm/conduit/feed
+
+The `rss_feed.py` module provides these functions:
+- `fetch_latest_episode()` - Get the most recent episode
+- `fetch_latest_episode_number()` - Get just the latest episode number
+- `fetch_episode_by_number(episode_number)` - Get a specific episode by number
+- `fetch_episodes()` - Get all episodes from the feed
+
+### Deprecated Web Scraping
+
+The old `url_finder.py` module (web scraping via BeautifulSoup) is deprecated in favor of RSS feed parsing.
+
+- **Episode Number Extraction**: Extracted from RSS title by splitting on ":" (e.g., "114: Title" → 114)
+>>>>>>> a4a2d51 (uses feedparser to update content)
 - **Embedding Storage**: VectorChunk records store embeddings as 768-dimensional vectors; ensure pgvector extension is installed and enabled in PostgreSQL.
 - **Error Handling**: `pg_ingest.py` uses logging (WARNING level by default); check logs for detailed error information during data processing.
 - **Contributing**: See `CONTRIBUTING.md` for PR requirements. PRs require an issue first, use format `[TYPE] <Issue Number> - Description`, and must pass `just check` quality checks.
