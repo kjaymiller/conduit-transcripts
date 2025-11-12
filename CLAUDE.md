@@ -23,6 +23,7 @@ This is a podcast transcript management system for the Conduit Podcast. It autom
 - **CLI Framework**: Typer
 - **ORM**: SQLAlchemy with pgvector support
 - **Environment Management**: python-dotenv, direnv (`.envrc`)
+- **Code Quality**: Ruff (formatting and linting), pytest (testing)
 
 ## Directory Structure
 
@@ -149,6 +150,28 @@ uv run python src/quick_upload.py files --os-only
 ```bash
 # Create/recreate OpenSearch index (destructive)
 uv run python src/os_index.py
+```
+
+### Code Quality and Formatting
+The project uses **ruff** for both code formatting and linting:
+
+```bash
+# Format code with ruff
+uv tool run ruff format .
+
+# Check code for linting issues
+uv tool run ruff check .
+
+# Fix linting issues automatically
+uv tool run ruff check . --fix
+```
+
+**Using just recipes** (recommended):
+```bash
+just fmt        # Format code with ruff
+just lint       # Check code with ruff
+just lint-fix   # Fix linting issues automatically
+just check      # Run all quality checks
 ```
 
 ## Environment Configuration

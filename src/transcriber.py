@@ -160,7 +160,9 @@ class HybridTranscriber:
                             f"All transcription backends failed. Primary: {e}, Fallback: {fallback_error}"
                         )
                 else:
-                    raise RuntimeError(f"Transcription failed and no fallback available: {e}")
+                    raise RuntimeError(
+                        f"Transcription failed and no fallback available: {e}"
+                    )
         elif self._fallback_transcriber:
             return self._fallback_transcriber.transcribe(audio_path)
         else:

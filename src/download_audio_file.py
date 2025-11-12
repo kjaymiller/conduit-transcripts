@@ -20,7 +20,6 @@ def download_audio_file(url: str) -> str:
         typer.echo(f"Downloading audio file from {url}")
 
         with httpx.stream("GET", url, follow_redirects=True) as response:
-
             typer.echo(f"Saving audio file to {f.name}")
             for chunk in response.iter_bytes():
                 f.write(chunk)

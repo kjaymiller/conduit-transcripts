@@ -40,7 +40,6 @@ def download_audio_file(url: str) -> str:
         typer.echo(f"Downloading audio file from {url}")
 
         with httpx.stream("GET", url, follow_redirects=True) as response:
-
             typer.echo(f"Saving audio file to {f.name}")
             for chunk in response.iter_bytes():
                 f.write(chunk)
@@ -65,7 +64,6 @@ def transcribe_file(
         typer.Option("--output", exists=True, file_okay=True, dir_okay=False),
     ] = None,
 ):
-
     transcription = transcribe_audio_file(audio_file=input_file)
     if not output_file:
         output_file = input_file.absolute().with_suffix(".txt")

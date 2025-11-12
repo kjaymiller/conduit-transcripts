@@ -71,17 +71,17 @@ index-recreate:
 
 # Code Quality Commands
 
-# Format code with black
+# Format code with ruff
 fmt:
-    uv run black .
+    uv tool run ruff format .
 
 # Check code with ruff
 lint:
-    uv run ruff check .
+    uv tool run ruff check .
 
 # Fix linting issues with ruff
 lint-fix:
-    uv run ruff check . --fix
+    uv tool run ruff check . --fix
 
 # Run all quality checks
 check: lint

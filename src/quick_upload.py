@@ -25,8 +25,10 @@ def process_frontmatter(file: pathlib.Path):
         "show": "Conduit",
         "description": frontmatter_post["description"],
         "url": frontmatter_post["url"],
-        "pub_date": arrow.get(frontmatter_post["pub_date"], ARROW_FMT).date().isoformat(),
-        "content": frontmatter_post.content
+        "pub_date": arrow.get(frontmatter_post["pub_date"], ARROW_FMT)
+        .date()
+        .isoformat(),
+        "content": frontmatter_post.content,
     }
 
 
