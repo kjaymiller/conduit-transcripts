@@ -1,0 +1,46 @@
+[project]
+name = "conduit-transcripts"
+version = "0.1.0"
+description = "A podcast transcript management system for the Conduit Podcast with transcription, embedding, and RAG capabilities"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Jay Miller" }]
+
+dependencies = [
+  "openai-whisper>=20241126",
+  "mlx-whisper>=0.1.0",
+  "httpx>=0.24.0",
+  "python-frontmatter>=1.0.0",
+  "python-slugify>=8.0.0",
+  "typer>=0.9.0",
+  "langchain-text-splitters>=0.0.0",
+  "langchain-huggingface>=0.0.0",
+  "sentence-transformers>=3.0.0",
+  "rich>=13.0.0",
+  "beautifulsoup4>=4.12.0",
+  "sqlalchemy>=2.0.0",
+  "pgvector>=0.1.0",
+  "opensearch-py>=2.0.0",
+  "python-dotenv>=1.0.0",
+  "arrow>=1.3.0",
+  "psycopg>=3.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0.0", "black>=23.0.0", "ruff>=0.1.0"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"

@@ -1,6 +1,5 @@
 """Use Whisper to transcribe audio files to text."""
 
-from os import name
 import pathlib
 import tempfile
 import typing
@@ -10,14 +9,14 @@ import frontmatter
 import httpx
 import slugify
 import typer
-import whisper
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from rich.progress import track
 from rich.prompt import Confirm
+from transcriber import HybridTranscriber
 from url_finder import fetch_latest_episode_number, get_audio_url_from_episode_number
 
 app = typer.Typer()
-model = whisper.load_model("base")
+transcriber = HybridTranscriber(model="base", prefer_mlx=True)
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=300,
     separators=[".", "!", "?", "\n"],
@@ -50,12 +49,9 @@ def download_audio_file(url: str) -> str:
 
 
 def transcribe_audio_file(audio_file: pathlib.Path) -> str:
-    """Transcribe an audio file to text"""
+    """Transcribe an audio file to text using MLX or Whisper"""
 
-    audio = whisper.load_audio(str(audio_file))
-    transcription = model.transcribe(audio=audio, verbose=False)
-
-    return transcription["text"]
+    return transcriber.transcribe(audio_file)
 
 
 @app.command(name="file")
