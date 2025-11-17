@@ -1,0 +1,104 @@
+---
+description: '<p>Video: <a target="_blank" rel="noopener noreferrer nofollow" href="https://youtu.be/dVIPBxHJ1kQ">https://youtu.be/dVIPBxHJ1kQ</a></p><p>00:00
+  Intro</p><p>00:15 Greets for Sonam</p><p>01:02 Importance of metric learning</p><p>3:37
+  Sonam''s background: Rasa, Qdrant</p><p>4:31 What''s EmbedAnything</p><p>5:52 What
+  a user gets</p><p>8:48 Do I need to know Rust?</p><p>10:18 Call-out to the community</p><p>10:35
+  Multimodality</p><p>12:32 How to evaluate quality of LLM-based systems</p><p>16:38
+  QA for multimodal use cases</p><p>18:17 Place for a human in the LLM craze</p><p>19:00
+  Use cases for EmbedAnything</p><p>20:54 Closing theme (a longer one - enjoy!)</p><p></p><p></p><p>Show
+  notes:</p><p>- GitHub: <a target="_blank" rel="noopener noreferrer nofollow" href="https://github.com/StarlightSearch/EmbedAnything">https://github.com/StarlightSearch/EmbedAnything</a></p><p>-
+  HuggingFace Candle: <a target="_blank" rel="noopener noreferrer nofollow" href="https://github.com/huggingface/candle">https://github.com/huggingface/candle</a></p><p>-
+  Sonam''s talk on Berlin Buzzwords 2024: <a target="_blank" rel="noopener noreferrer
+  nofollow" href="https://www.youtube.com/watch?v=YfR3kuSo-XQ">https://www.youtube.com/watch?v=YfR3kuSo-XQ</a></p><p>-
+  Removing GIL from Python: <a target="_blank" rel="noopener noreferrer nofollow"
+  href="https://peps.python.org/pep-0703">https://peps.python.org/pep-0703</a></p><p>-
+  Blind pairs in CLIP: <a target="_blank" rel="noopener noreferrer nofollow" href="https://arxiv.org/abs/2401.06209">https://arxiv.org/abs/2401.06209</a></p><p>-
+  Dark matter of intelligence: <a target="_blank" rel="noopener noreferrer nofollow"
+  href="https://ai.meta.com/blog/self-supervised-learning-the-dark-matter-of-intelligence/">https://ai.meta.com/blog/self-supervised-learning-the-dark-matter-of-intelligence/</a></p><p>-
+  Rasa chatbots: <a target="_blank" rel="noopener noreferrer nofollow" href="https://github.com/RasaHQ/rasa">https://github.com/RasaHQ/rasa</a></p><p>-
+  Prometheus: <a target="_blank" rel="noopener noreferrer nofollow" href="https://github.com/prometheus-eval/prometheus-eval">https://github.com/prometheus-eval/prometheus-eval</a></p><p>-
+  Dino: <a target="_blank" rel="noopener noreferrer nofollow" href="https://github.com/facebookresearch/dino">https://github.com/facebookresearch/dino</a></p>'
+image_url: https://media.rss.com/vector-podcast/ep_cover_20240919_060938_934c8351e1fe4c81a354cd419d0a3307.png
+pub_date: Thu, 19 Sep 2024 11:02:40 GMT
+title: Berlin Buzzwords 2024 - Sonam Pankaj - EmbedAnything
+url: https://rss.com/podcasts/vector-podcast/1663042
+---
+
+Hello there, vector podcast and I'm here accompanied with Sonan. Sonan you are the, I guess, visitor of the conference. Are you also giving a talk? Yes, I'm giving a talk tomorrow on metric learning.
+Yeah, what's your topic? I'm not talking metric learning tomorrow, but I'm very excited about what we are building at and better than anything on starlight. So yeah, awesome. And is it your first time at the conference? Yes, it's the first time, but that's one of the best conferences. Awesome.
+Yeah, I love it. I've been here first time in 2011 and I still, I still love coming back once in a while. It's really good. I can see why you want to come back again and again. Yeah, exactly. Yeah. Awesome.
+And you work mostly on what I, well, we had an episode actually with quadrants on metric learning. I will, I will make sure to link it. Tell me a bit more about metric learning if you will. Like in a, in a, why shouldn't everyone care that he seems to think that they should use maybe yes.
+So a lot of people just think about like, you know, we can do a check distance and then you know, we'll get the similarity. But the thing is, even though you change the distance, it won't make any difference because those embeddings are already in the space. So it's already relative.
+So if you're doing a co-science similarity, which I love pizza and I do not love pizza, that's your 90% similarity. Right? And to the other distance will not make any sense.
+So the thing is with metric learning, you can build your own data set and then the train there when embedding model again for giving you right. Yeah.
+I mean, I still try to understand it, but it's basically like, like on one hand, you have your data and then you choose the model and that model should be pre-trained for you, you could also fine tune it on your data if you want. And then inherently, it will have its own measure of similarity.
+So it's not something you can easily control. Yeah. But then metric learning opposes this by saying that you should be in control of your metric. Yeah.
+It's all your similarity measure, not just the metric itself, but the similarity measure, which means that I should kind of like drop the model, just get my data and start training some new network, right? So that I can find the basically fine tuning the embedding model.
+What with your data? So yeah, suppose you're finding intense. Yes. Okay. Where does metric learning really shine? It's classification versus similarity again. If you are doing classification, you are limited up to certain classes, right? Suppose, yeah, particular intense. Yeah.
+It's not scalable at like a million scale, you cannot keep adding adding addicts, but with similarity search and metric learning, you can add any intense, very keen solution. Yeah. Yeah. So it's not limited. Yeah.
+That's one of the, you know, classical way to view that metric learning plays much, much better role at scale, and that's why vector database can scale this much. Sure. Yeah. And tell me a bit more about yourself.
+How did you end up in this space? Like, what was your pet? I know you worked at Thrasa as well, which is also an open source project. Yes. I once looked at and but now you work for another company like, what was your journey? And yeah.
+So I worked at as an AI researcher at Sama, so we were mostly in clinical trials. So, you know, Pfizer and the world is, it does this clinical trials for 10 to 12 years and we had like those massive data and we wanted to find out the subjects could drop out of the studies.
+I also published paper before. That's well-versed in this AI research and AI area. Yeah. And then I joined Raza for conversation, AI, I love conversation, AI. And then I joined four friends recently and I got into this embedding space.
+And now I have my own open source project called embedding a thing in which you can use very different multi-moder sources and structure sources, speed, you know, you get embed it in 40 x faster speed than any other presence by planes. Wow. How did you do that? That is rust. It's all available.
+It's all open source because I have like a used supporter of open source. So what we do is we have built this cluster in rust from PDF while it is going towards embedding. So one of the analogy that I use most is embedding models are, yeah, they are like really, really cool.
+They are becoming faster and everything. But if you want to drive a Porsche, would you like to drive it on a national highway for a road full of quadruples? So that's the analogy being used.
+We are giving you a high for the price for driving your embedding model or Porsche, you know, in a very sophisticated and like, yeah, no tech depth, you call it by blind for embedding. Interesting. So you are basically building an infrastructure where or infrastructure for this is a very model.
+So what as a user, what can I do on this project? Yeah, very good question. So we are very production ready. Yeah. And we do not use any kind of heavy library, right? They are lip torches.
+So if you have to embed something, the first go on hugging phase, use sentence, transformers, and then you will download that 2.5 TV library and stuff like which will come with lip torches and stuff like that. Yeah. And we have removed all those dependents. All right. That's a good lighter. Yeah.
+We have liked it. Yeah. But of candle from the hugging phase, because candle also uses rust and because we are also building rust, it's much easier to integrate with candle. So yeah, so it's much lighter, much faster, you know, way of creating.
+What is candle? Candle is basically, basically, inference on GPU and CPU. Oh, I see. Yeah. Yeah. And it's also open source. Yeah, it's also. Okay. So you do everything unconventionally in a rust, even though everyone else is doing it in Python.
+Because it's, you know, multi-treting is like so much embedded in rust. Like people will tell you that Python can also do multi-treting, but that's not too multi-treting because the global, global, and global, and global law. Yeah. And rust tells you mutable log.
+So you can do like achieve a tool multi-treting just with rust. Yeah. They promised actually to solve geolproblem in Python next version. Yeah. They already are through them. Oh, wow. I don't know when it will materialize, but. Okay. And so, okay.
+But if I look at it from the perspective, let's say, of building some product, being a chatbot or like search engine, you know, blend it with vector search, or something like that. So what is my typical sort of like, like, pipeline, how does it look like? Right.
+So what will I do? Let's say I have my data. And then maybe I've chosen a model, but that model is okay. Maybe it's not the fastest one.
+What should I do? Will I turn to your platform to speed it up? Will I turn to your platform to do some other things as well? So we are not doing any changes in the model itself. We are not quantizing.
+Even though we can use those models, so candle gives you a certain list of models that you can use and create with us. Yeah. Basically. So whatever candle supports, we support. Yeah. Whatever candle doesn't support, we cannot support because we are basically dependent of them. Yeah.
+So if and we are not doing anything in the model itself, we are doing it on the extraction in parsing part of the data. Right. If you have different videos, different MDs, I will extract junk and parse them. And then build this like extra fast. Yeah. Yeah.
+And then let's say if I want to go to production, but I also have some other components which maybe you wouldn't integrate, right? I know my search cluster and something else. My services. So can I also go to production with your platform? Yeah.
+Like, how will it look like exactly? Is it a docker? Is it the unit? It's you do not need to first of all code in Rust. A lot of developers come out to reach me and like, you know, they ask, do I need to know Rust to contribute to embed anything? I'm like, no, you do not need.
+We have, because let's fire. We have like worked like for building this wrapper around Rust so that you know, you can easily create it with Python. Oh, so you have a Python wrapper of your own. Yeah. You only need to know Python. You do not need to know Rust at all. How interesting. Yeah.
+So do you have any like instances where companies have already built POCs with your platform? Or do you already have someone going to production? Yeah. So I get so many requests on like acquisition part of things and stuff like that.
+But we are like, you know, it's we are one my whole company and we have nothing company project. But we have got six key downloads, but we have gotten to production yet. But hopefully next two, three months. Nice. And do you need any help from the community? Yes.
+If you're interested in building the infrastructure for UnityBI and Rust, Python. So to connect with us, we're left to have you on board. All right. But let's go back a little bit. So you also said that there is multi-modality element of it. Yeah.
+So I will tell you the way I see it, but please correct me or augment me. So I think a couple of years ago, two years ago, we gave a talk here at Berlin Bosnol. It's basically showing a system where you can search images and text, whatever you want.
+And if you have images that do not have textual metadata, then that's your gateway into finding these images because neural networks will understand and extract the content using plebe, right? Yeah. And so we were able to show some really interesting examples.
+For example, you could find in the context of the commerce, a long sleeveless dress, striped, whatever color and so on and so forth. And it worked. And even some audience members asked us to demo on their queries and it still worked.
+So that showed the power of multi-modality, right? And we didn't even need to fine-tune delete it. It was just out of the box. But I guess the reason for it to multi-modality, what else are you thinking that's part of your blog? Great question.
+Even though images like Clare is known for multi-modality research, one of the best use cases of Clare is when you're doing the need of short classification, right? It doesn't need the previous data at all, even if it is searching images, if it is searching through text.
+And it's like so powerful, right? So we have a different example with it. But coming to a question, we have audio, wanted to embed audio graphs, et cetera. So all these are in five times. But right now, we are only embedding text and images. And are you using Clip? Yeah, we're using Clip.
+Clip, that's right. You know, that one thing that you cannot get. I also wanted to ask you a bit if you may share your insight on evaluating this system.
+So one of the feedbacks that I have gotten for, for IoT, between or anything, like basically, so let's say I have my LLN based application, you know, how do I evaluate it? Because one of the feedbacks is that sometimes it gives perfect results, sometimes it gives awful results, right?
+So now there is nothing in between, right? Or not barely.
+So how would you solve this? Of course, you do start with your metric learning and some other techniques, right? But there is still the other side of things when you go to production, as you know, like in Rasa and Quadrant and many other companies, you care about quality.
+So how do you have any insight on that? Are you maybe planning to build something along the lines of evaluation? That's a great question. You know, but great part of the great response to it is, so LLN is one of the examples of that.
+So, you know, LLN gives you a bright answer, but it also gives you hallucination. But a lot of people see hallucination as a bug, but I see it as a feature, because it won't be able to do that creative job, but it can do with hallucinations.
+One of the, there are so many tools, right, to measure retrieval part like Braggas, Prometheus, right? And there are so many tools, too.
+But still, I think recall measure, what we call it, like, you know, measure how LLN recall is working, where basically extracting most relevant information, not like rubbish information.
+So those things are like really important, and a lot of research is going on, but we are more like focused on the infrastructure, and we are keeping it up, trying to keep it up, but yeah, so mostly I would go for classical testing ways like precision, recall, yeah.
+But basically like, okay, you do test, and you see that sometimes once in a while it fails. So first of all, of course, catching that is important, right? People are going to production. Yes, but what is your way backwards to fixing this? Thank you, Chef. Yeah, from from from finding that bug.
+Okay, let me think about that.
+So, data set, maybe you can give some example where you have fixed a ratio, you know, reported by someone, not necessarily as part of your platform, but previously, I don't know, what have I done? Yeah, so I was working with this, that's why this talk came into my mind, right?
+The negation problem, the negation problem is so huge.
+You will always find sentences with not every domain, read biomedical, read law and everything, and it still gives you the same similarity, even though you do not have to be a language, you know, expert to understand these. Different things. Yeah, yeah, yeah.
+So different things, right? That's that's when the trick learning comes, that's when inference started to come into mind, because inference is very important.
+Like a lot of people have played with SNLI and stuff, and then they understand that to understand negation, you first need to understand inferences.
+So there's a way to like, method, right? Yeah, yeah, yeah, and entailment, contradiction, neutral, two sentences could be neutral, yeah, unrelated to each other, two centers could be contradictory, contradictory to each other.
+So, yeah, which means that you need a purpose of data somehow labeled, yes, yes, yes, logically reasoned through, right, using an algorithm.
+Yes, so that's that's what SNLI is, like, SNLI is a data set, particularly for this, yeah, particular questions, problems, so yeah, if you, you've re-tune it with, it was fun. So that would be for text, and what about other modalities? I don't think it was, that's what it was.
+Like images, I know sometimes a model may hallucinate that there is something in the real world, but there is nothing like that. Oh, that's one thing, but I guess there are many.
+So there are things like, there's a study called blind pairs in clip, that was done by, I'm sorry, I forgot the name, which were like, people say find that.
+Yeah, so they found out, clip actually has blind pairs, like you cannot segment things really well, like, cats sleeping on the, on the car, or something, and then something else will give you the same description or something. So there, Dino comes in.
+So Dino there's a segmentation with self-supervised learning, self-supervised learning, I think is the best invention of like, for this AI, and now it thumbs up. Yeah, in the open source. That's supervised learning. Is it open source? A Dino, you say? Yeah, it is.
+Yeah, it's from Meta, and I think Likun is one of, and when, you know, he has written this folder, what you call it, white paper on the dark matter of intelligence that is self-supervised learning. So they are doing a lot of work in self-supervised learning.
+You know, make data, make the model learn from the data itself. You do not need to label it. Yeah, that's like in the self-supervised sort of.
+Okay, then maybe another question I have is, where do you embed a human in this process? Do you ever, like, I don't know, to check quality or give feedback? Exactly. So one other thing in metric learning is everyone thinks it's self-supervised, or data, it will learn with the data.
+It doesn't need label. But when the contrastive learning happens, who is making that negative mining fare? It's the huge, it's the kind of making that negative one. Very, very crisp one, right? Exactly, where does it is learning? Not just random negative, but like synonymically negative.
+Thimmedically negative. Yeah. So there, they mean very common and like, you know. For sure. Yeah. So, and so today, let's say if someone wants to use your platform, you said, embedding and embedding. Embedding thing. Embedding thing. It's on GitHub, I'm guessing. We'll link it. Yeah.
+And so how do you, like, part of the story that becomes successful, I guess, is that you can map out your path from use cases to your library, to your project, which would probably be one of the components in the overall picture.
+So which scenarios and use cases do you see where your platform can give value? Is it chat box? Is it vector search? Is it completely anything?
+In anywhere where embeddings are used, multi-model embeddings, my library will be like, well, I want my library to be the infrastructure where people use different.
+Awesome. Yeah. Yeah. Yeah. Well, this sounds really cool. And I wish you all the best in this project. Thank you. I hope that some of my listeners will go and check out and maybe you will even get some contributors or, you know, whoever users who can create the tickets. Yeah. Yeah.
+I would love to see some issues. And, you know, even if you want to raise some issues, go ahead or add any feature, you can add it as a full request and we can take a look at it. We are really, really excited. And a lot of developers just feature to me, do I need to need no rest? No. Yeah.
+If you do not need to need no rest at all. Yeah. So you can be, let's say, writing the library and still can trigger it. Yeah. Oh, nice. Awesome. Maybe you can use chat GTP as well to convert your Python to rest, but that's another story. Awesome. And I look forward to your presentation.
+I will not be there, but I will watch the recording and I will also link this episode and the recording of your talk. Thank you. So good luck with that and thank you so much. Thank you. Thank you so much. Enjoy it. Enjoy the content. Yeah. Thank you.

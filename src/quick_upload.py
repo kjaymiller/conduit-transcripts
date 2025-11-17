@@ -15,7 +15,7 @@ from pg_ingest import pg_load_data_from_file, drop_table
 ARROW_FMT = r"MMMM[\s+]D[\w+,\s+]YYYY"
 
 
-def process_frontmatter(file: pathlib.Path)
+def process_frontmatter(file: pathlib.Path):
     frontmatter_post = frontmatter.loads(
         file.read_text()
     )  # loads the metadata from the file
