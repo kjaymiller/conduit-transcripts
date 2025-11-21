@@ -1,7 +1,9 @@
 """Use Whisper to transcribe audio files to text."""
 
 from os import name
+import json
 import pathlib
+import re
 import tempfile
 import typing
 import typing_extensions
@@ -75,12 +77,24 @@ def download_audio_file(url: str) -> str:
     Returns:
         The path to the downloaded audio file.
     """
+    # Use browser-like headers to avoid getting ad-injected versions
+    # Some CDNs (like RSS.com) serve different content based on User-Agent
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "audio/mpeg, audio/*, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://rss.com/",
+    }
 
     with tempfile.NamedTemporaryFile(mode="+wb", suffix=".mp3", delete=False) as f:
         typer.echo(f"Downloading audio file from {url}")
 
-        with httpx.stream("GET", url, follow_redirects=True) as response:
-
+        with httpx.stream("GET", url, headers=headers, follow_redirects=True) as response:
+            # Log the final URL after redirects for debugging
+            final_url = str(response.url)
+            if final_url != url:
+                typer.echo(f"Redirected to: {final_url}")
+            
             typer.echo(f"Saving audio file to {f.name}")
             for chunk in response.iter_bytes():
                 f.write(chunk)
@@ -88,8 +102,8 @@ def download_audio_file(url: str) -> str:
         return f.name
 
 
-def transcribe_audio_file(audio_file: pathlib.Path) -> str:
-    """Transcribe an audio file to text"""
+def transcribe_audio_file(audio_file: pathlib.Path) -> dict:
+    """Transcribe an audio file and return full Whisper result with text and segments"""
     model = _get_whisper_model()
     # _whisper_module is guaranteed to be set if _get_whisper_model() succeeded
     whisper = _whisper_module
@@ -97,6 +111,12 @@ def transcribe_audio_file(audio_file: pathlib.Path) -> str:
     audio = whisper.load_audio(str(audio_file))
     transcription = model.transcribe(audio=audio, verbose=False)
 
+    return transcription
+
+
+def transcribe_audio_file_text_only(audio_file: pathlib.Path) -> str:
+    """Transcribe an audio file to text (backward compatibility)"""
+    transcription = transcribe_audio_file(audio_file)
     return transcription["text"]
 
 
@@ -116,10 +136,11 @@ def transcribe_file(
     if not output_file:
         output_file = input_file.absolute().with_suffix(".txt")
 
-    return output_file.write_text(transcription)
+    return output_file.write_text(transcription["text"])
 
 
-def transcribe_from_audio_url(audio_url: str) -> str:
+def transcribe_from_audio_url(audio_url: str) -> dict:
+    """Transcribe audio from URL and return full Whisper result with text and segments"""
     typer.echo(f"Transcribing audio from {audio_url}")
     audio_file_path = download_audio_file(audio_url)
     transcription = transcribe_audio_file(pathlib.Path(audio_file_path))
@@ -128,15 +149,22 @@ def transcribe_from_audio_url(audio_url: str) -> str:
     return transcription
 
 
-def get_output_file_path(metadata: dict, show: typing.Optional[str] = None) -> pathlib.Path:
-    """Get the output file path for a transcript based on metadata and show name."""
+def get_output_file_path(metadata: dict, show: typing.Optional[str] = None, with_timestamps: bool = False) -> pathlib.Path:
+    """Get the output file path for a transcript based on metadata and show name.
+    
+    Args:
+        metadata: Episode metadata dictionary
+        show: Optional show name (subdirectory)
+        with_timestamps: If True, save to transcripts_with_timestamps/ folder
+    """
+    base_dir = "transcripts_with_timestamps" if with_timestamps else "transcripts"
     if show:
         return pathlib.Path(
-            f"transcripts/{slugify.slugify(show)}/{slugify.slugify(metadata['title'])}.md"
+            f"{base_dir}/{slugify.slugify(show)}/{slugify.slugify(metadata['title'])}.md"
         )
     else:
         return pathlib.Path(
-            f"transcripts/{slugify.slugify(metadata['title'])}.md"
+            f"{base_dir}/{slugify.slugify(metadata['title'])}.md"
         )
 
 
@@ -159,6 +187,10 @@ def transcribe_from_episode_number(
     skip_if_exists: typing_extensions.Annotated[
         bool,
         typer.Option("--skip-if-exists", help="Skip episodes for which transcriptions already exist"),
+    ] = False,
+    with_timestamps: typing_extensions.Annotated[
+        bool,
+        typer.Option("--with-timestamps", help="Extract and store Whisper segments with timestamps (slower, saves to transcripts_with_timestamps/)"),
     ] = False,
 ):
     """
@@ -187,15 +219,24 @@ def transcribe_from_episode_number(
 
     for episode_number in track(episode_numbers):
         metadata, audio_url = get_audio_url_from_episode_number(episode_number)
-        output_file = get_output_file_path(metadata, show)
+        output_file = get_output_file_path(metadata, show, with_timestamps=with_timestamps)
         
         if skip_if_exists and output_file.exists():
             typer.echo(f"Skipping episode {episode_number}: {output_file} already exists")
             continue
         
-        transcription = transcribe_from_audio_url(audio_url)
+        transcription_result = transcribe_from_audio_url(audio_url)
+        transcription_text = transcription_result["text"]
+        
+        # Only extract and store segments if with_timestamps is enabled
+        if with_timestamps:
+            whisper_segments = transcription_result.get("segments", [])
+            metadata["whisper_segments"] = json.dumps(whisper_segments) if whisper_segments else None
+        else:
+            metadata["whisper_segments"] = None
+        
         post = frontmatter.Post(
-            "\n".join(splitter.split_text(transcription)), **metadata
+            "\n".join(splitter.split_text(transcription_text)), **metadata
         )
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text(frontmatter.dumps(post))
@@ -228,6 +269,10 @@ def transcribe_from_rss(
         bool,
         typer.Option("--skip-if-exists", help="Skip episodes for which transcriptions already exist"),
     ] = False,
+    with_timestamps: typing_extensions.Annotated[
+        bool,
+        typer.Option("--with-timestamps", help="Extract and store Whisper segments with timestamps (slower, saves to transcripts_with_timestamps/)"),
+    ] = False,
 ):
     """
     Transcribe episodes from an RSS feed (e.g., Vector Podcast)
@@ -235,6 +280,17 @@ def transcribe_from_rss(
     Metadata is pulled from the RSS feed.
     Audio is downloaded from the enclosure URL in the feed.
     """
+    # Auto-detect show name from RSS URL if not provided
+    if show is None:
+        # Try to extract show name from URL pattern like "rss.com/vector-podcast/feed.xml"
+        match = re.search(r'/([^/]+)/feed\.xml', rss_url)
+        if match:
+            show = match.group(1)
+        else:
+            # Fallback: try to extract from any path segment before feed.xml
+            match = re.search(r'/([^/]+)/[^/]*feed', rss_url)
+            if match:
+                show = match.group(1)
     
     if latest:
         episode = get_latest_episode(rss_url)
@@ -243,15 +299,24 @@ def transcribe_from_rss(
             raise typer.Exit(1)
         
         metadata, audio_url = get_audio_url_from_rss_episode(episode)
-        output_file = get_output_file_path(metadata, show)
+        output_file = get_output_file_path(metadata, show, with_timestamps=with_timestamps)
         
         if skip_if_exists and output_file.exists():
             typer.echo(f"Skipping latest episode: {output_file} already exists")
             return
         
-        transcription = transcribe_from_audio_url(audio_url)
+        transcription_result = transcribe_from_audio_url(audio_url)
+        transcription_text = transcription_result["text"]
+        
+        # Only extract and store segments if with_timestamps is enabled
+        if with_timestamps:
+            whisper_segments = transcription_result.get("segments", [])
+            metadata["whisper_segments"] = json.dumps(whisper_segments) if whisper_segments else None
+        else:
+            metadata["whisper_segments"] = None
+        
         post = frontmatter.Post(
-            "\n".join(splitter.split_text(transcription)), **metadata
+            "\n".join(splitter.split_text(transcription_text)), **metadata
         )
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text(frontmatter.dumps(post))
@@ -266,15 +331,24 @@ def transcribe_from_rss(
             episodes = parse_rss_feed(rss_url)
             for episode in track(episodes):
                 metadata, audio_url = get_audio_url_from_rss_episode(episode)
-                output_file = get_output_file_path(metadata, show)
+                output_file = get_output_file_path(metadata, show, with_timestamps=with_timestamps)
                 
                 if skip_if_exists and output_file.exists():
                     typer.echo(f"Skipping episode: {output_file} already exists")
                     continue
                 
-                transcription = transcribe_from_audio_url(audio_url)
+                transcription_result = transcribe_from_audio_url(audio_url)
+                transcription_text = transcription_result["text"]
+                
+                # Only extract and store segments if with_timestamps is enabled
+                if with_timestamps:
+                    whisper_segments = transcription_result.get("segments", [])
+                    metadata["whisper_segments"] = json.dumps(whisper_segments) if whisper_segments else None
+                else:
+                    metadata["whisper_segments"] = None
+                
                 post = frontmatter.Post(
-                    "\n".join(splitter.split_text(transcription)), **metadata
+                    "\n".join(splitter.split_text(transcription_text)), **metadata
                 )
                 output_file.parent.mkdir(parents=True, exist_ok=True)
                 output_file.write_text(frontmatter.dumps(post))
@@ -302,15 +376,24 @@ def transcribe_from_rss(
     
     for episode in track(episodes_to_process):
         metadata, audio_url = get_audio_url_from_rss_episode(episode)
-        output_file = get_output_file_path(metadata, show)
+        output_file = get_output_file_path(metadata, show, with_timestamps=with_timestamps)
         
         if skip_if_exists and output_file.exists():
             typer.echo(f"Skipping episode: {output_file} already exists")
             continue
         
-        transcription = transcribe_from_audio_url(audio_url)
+        transcription_result = transcribe_from_audio_url(audio_url)
+        transcription_text = transcription_result["text"]
+        
+        # Only extract and store segments if with_timestamps is enabled
+        if with_timestamps:
+            whisper_segments = transcription_result.get("segments", [])
+            metadata["whisper_segments"] = json.dumps(whisper_segments) if whisper_segments else None
+        else:
+            metadata["whisper_segments"] = None
+        
         post = frontmatter.Post(
-            "\n".join(splitter.split_text(transcription)), **metadata
+            "\n".join(splitter.split_text(transcription_text)), **metadata
         )
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text(frontmatter.dumps(post))

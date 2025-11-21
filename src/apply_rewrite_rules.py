@@ -99,22 +99,44 @@ def apply_rules(
     input_dir: typing_extensions.Annotated[
         pathlib.Path,
         typer.Option("--input-dir", "-i", help="Input directory containing transcript files"),
-    ],
+    ] = None,
     output_dir: typing_extensions.Annotated[
         pathlib.Path,
         typer.Option("--output-dir", "-o", help="Output directory for corrected transcript files"),
-    ],
+    ] = None,
     rules_file: typing_extensions.Annotated[
         pathlib.Path,
         typer.Option("--rules-file", "-r", help="Path to rewrite rules JSON file"),
     ] = pathlib.Path("rewrite_rules.json"),
+    with_timestamps: typing_extensions.Annotated[
+        bool,
+        typer.Option("--with-timestamps", help="Process transcripts_with_timestamps/ directory instead of transcripts/"),
+    ] = False,
+    in_place: typing_extensions.Annotated[
+        bool,
+        typer.Option("--in-place", help="Overwrite input files instead of writing to output directory"),
+    ] = False,
 ):
     """
     Apply rewrite rules to transcript files.
     
     Processes all .md files in the input directory recursively and writes
     corrected versions to the output directory, preserving directory structure.
+    
+    If --with-timestamps is used, defaults to transcripts_with_timestamps/ directory.
+    If --in-place is used, files are overwritten in the input directory.
     """
+    # Set default directories based on with_timestamps flag
+    if input_dir is None:
+        input_dir = pathlib.Path("transcripts_with_timestamps" if with_timestamps else "transcripts")
+    
+    if output_dir is None:
+        if in_place:
+            output_dir = input_dir
+        else:
+            # Default output: add _corrected suffix
+            output_dir = pathlib.Path(f"{input_dir}_corrected")
+    
     # Validate input directory
     if not input_dir.exists():
         typer.echo(f"Error: Input directory does not exist: {input_dir}", err=True)
