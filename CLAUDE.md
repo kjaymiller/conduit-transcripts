@@ -36,11 +36,17 @@ This is a podcast transcript management system for the Conduit Podcast. It autom
   - `url_finder.py` - Web scraping for Conduit website (episode metadata, audio URLs)
   - `quick_upload.py` - Unified data loading script for both OpenSearch and PostgreSQL
   - `pg_ingest.py` - PostgreSQL data processing with embeddings and vector storage
+  - `mcp_server.py` - **MCP server for transcript search and summarization**
   - `os_ingest.py` - OpenSearch data ingestion (incomplete/skeleton)
   - `os_index.py` - OpenSearch index creation and setup
   - `download_audio_file.py` - Audio file download utility
 - `transcripts/` - Generated markdown files with frontmatter metadata and transcribed content
 - `infra/` - Infrastructure configuration files
+  - `init-db.sql` - PostgreSQL database initialization script
+  - `README.md` - Docker infrastructure documentation
+- `docker-compose.yml` - **Multi-service Docker setup (PostgreSQL, ingestion, MCP server)**
+- `Dockerfile.ingestion` - Container for transcript ingestion service
+- `Dockerfile.mcp` - Container for MCP server
 - `justfile` - Task runner recipes for common commands
 - `pyproject.toml` - Project metadata and dependencies
 - `uv.lock` - Locked dependency versions for reproducible builds
