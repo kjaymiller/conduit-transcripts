@@ -81,4 +81,3 @@ CREATE TRIGGER update_podcasts_updated_at
     BEFORE UPDATE ON podcasts
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
-

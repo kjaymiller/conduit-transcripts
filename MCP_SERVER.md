@@ -34,6 +34,7 @@ A FastAPI-based MCP (Model Context Protocol) server for searching and retrieving
 
 This endpoint allows MCP clients (like Claude Desktop or OpenCode) to connect using the Model Context Protocol over SSE.
 
+
 ### Vector Search
 **GET /search/vector** - Semantic search using vector embeddings
 
@@ -373,6 +374,7 @@ To use the MCP server with OpenCode:
 
 3. **Restart OpenCode**:
    After starting the server, restart OpenCode or reload the configuration to establish the connection.
+
 
 ## License
 

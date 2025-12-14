@@ -9,7 +9,7 @@ import sys
 import os
 
 # Add src directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 
 @pytest.fixture
@@ -46,6 +46,7 @@ def test_root_endpoint(mock_engine, mock_embedding_model):
     """Test root endpoint returns server info"""
     # No need to patch db for root
     from apps.mcp.server import app
+
     client = TestClient(app)
     response = client.get("/")
 
@@ -59,9 +60,10 @@ def test_root_endpoint(mock_engine, mock_embedding_model):
 def test_health_endpoint(mock_engine, mock_embedding_model):
     """Test health check endpoint"""
     # Patch VectorDatabase in server module (for health check)
-    with patch('apps.mcp.server.VectorDatabase') as MockDB:
+    with patch("apps.mcp.server.VectorDatabase") as MockDB:
         MockDB.return_value.engine.connect.return_value.__enter__.return_value.execute.return_value = None
         from apps.mcp.server import app
+
         client = TestClient(app)
         response = client.get("/health")
 
@@ -75,6 +77,7 @@ def test_health_endpoint(mock_engine, mock_embedding_model):
 def test_vector_search_validation(mock_engine, mock_embedding_model):
     """Test vector search requires query parameter"""
     from apps.mcp.server import app
+
     client = TestClient(app)
 
     # Missing query parameter
@@ -85,6 +88,7 @@ def test_vector_search_validation(mock_engine, mock_embedding_model):
 def test_text_search_validation(mock_engine, mock_embedding_model):
     """Test text search requires query parameter"""
     from apps.mcp.server import app
+
     client = TestClient(app)
 
     # Missing query parameter
