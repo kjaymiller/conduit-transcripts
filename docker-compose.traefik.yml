@@ -7,8 +7,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB_NAME:-transcripts}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
@@ -32,6 +30,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB_NAME:-transcripts}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_SERVICE_URI: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB_NAME:-transcripts}
+      POSTGRES_DB_NAME: ${POSTGRES_DB_NAME:-transcripts}
       POSTGRES_VECTOR_DB_NAME: ${POSTGRES_VECTOR_DB_NAME:-vector_chunks}
     volumes:
       - ./transcripts:/app/transcripts:ro
@@ -39,8 +39,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    ports:
-      - "${INGESTION_PORT:-8001}:8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
@@ -49,6 +47,15 @@ services:
       start_period: 30s
     networks:
       - conduit-network
+      - traefik_default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.conduit-ingestion.rule=Host(`${INGESTION_DOMAIN:-conduit-ingestion.localhost}`)"
+      - "traefik.http.routers.conduit-ingestion.entrypoints=websecure"
+      - "traefik.http.routers.conduit-ingestion.tls=true"
+      - "traefik.http.routers.conduit-ingestion.tls.certresolver=letsencrypt"
+      - "traefik.http.services.conduit-ingestion.loadbalancer.server.port=8000"
+      - "traefik.docker.network=traefik_default"
     command:
       [
         "uv",
@@ -73,16 +80,26 @@ services:
       POSTGRES_DB: ${POSTGRES_DB_NAME:-transcripts}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_SERVICE_URI: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB_NAME:-transcripts}
+      POSTGRES_DB_NAME: ${POSTGRES_DB_NAME:-transcripts}
+      POSTGRES_VECTOR_DB_NAME: ${POSTGRES_VECTOR_DB_NAME:-vector_chunks}
       MCP_PORT: ${MCP_PORT:-8000}
     depends_on:
       postgres:
         condition: service_healthy
       ingestion:
         condition: service_healthy
-    ports:
-      - "${MCP_PORT:-8000}:8000"
     networks:
       - conduit-network
+      - traefik_default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.conduit-mcp.rule=Host(`${MCP_DOMAIN:-conduit-mcp.localhost}`)"
+      - "traefik.http.routers.conduit-mcp.entrypoints=websecure"
+      - "traefik.http.routers.conduit-mcp.tls=true"
+      - "traefik.http.routers.conduit-mcp.tls.certresolver=letsencrypt"
+      - "traefik.http.services.conduit-mcp.loadbalancer.server.port=8000"
+      - "traefik.docker.network=traefik_default"
     command:
       [
         "uv",
@@ -102,3 +119,5 @@ volumes:
 networks:
   conduit-network:
     driver: bridge
+  traefik_default:
+    external: true
