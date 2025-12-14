@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Note**: This project uses [bd (beads)](https://github.com/steveyegge/beads) for issue tracking. Use `bd` commands instead of markdown TODOs. See AGENTS.md for workflow details.
+
 ## Project Overview
 
 This is a podcast transcript management system for the Conduit Podcast. It automates the process of:
@@ -14,13 +16,14 @@ This is a podcast transcript management system for the Conduit Podcast. It autom
 
 ## Technology Stack
 
-- **Language**: Python 3.12.5 (specified in `.python-version`)
+- **Language**: Python 3.12+ (specified in `.python-version`)
 - **Package Manager**: uv (see `pyproject.toml` for dependencies)
-- **Audio Processing**: OpenAI Whisper (for transcription)
+- **Task Runner**: just (see `justfile` for recipes)
+- **Audio Processing**: MLX Whisper (Apple Silicon optimized) with OpenAI Whisper fallback
 - **Text Processing**: LangChain text splitters and HuggingFace embeddings
 - **Databases**: PostgreSQL with pgvector extension, OpenSearch
 - **Web Scraping**: BeautifulSoup, httpx
-- **CLI Framework**: Typer
+- **CLI Framework**: Typer with Rich for progress and output
 - **ORM**: SQLAlchemy with pgvector support
 - **Environment Management**: python-dotenv, direnv (`.envrc`)
 - **Code Quality**: Ruff (formatting and linting), pytest (testing)
@@ -28,16 +31,17 @@ This is a podcast transcript management system for the Conduit Podcast. It autom
 ## Directory Structure
 
 - `src/` - Main application code
-  - `transcribe.py` - Main script for Whisper transcription and episode processing
+  - `transcribe.py` - Main CLI for episode transcription workflow
+  - `transcriber.py` - Transcription backend abstraction (MLX/Whisper with fallback logic)
   - `url_finder.py` - Web scraping for Conduit website (episode metadata, audio URLs)
+  - `quick_upload.py` - Unified data loading script for both OpenSearch and PostgreSQL
+  - `pg_ingest.py` - PostgreSQL data processing with embeddings and vector storage
   - `os_ingest.py` - OpenSearch data ingestion (incomplete/skeleton)
   - `os_index.py` - OpenSearch index creation and setup
-  - `pg_ingest.py` - PostgreSQL data processing with embeddings and vector storage
-  - `quick_upload.py` - Unified data loading script for both OpenSearch and PostgreSQL
   - `download_audio_file.py` - Audio file download utility
 - `transcripts/` - Generated markdown files with frontmatter metadata and transcribed content
 - `infra/` - Infrastructure configuration files
-- `.envrc` - Direnv environment variables (contains sensitive connection strings)
+- `justfile` - Task runner recipes for common commands
 - `pyproject.toml` - Project metadata and dependencies
 - `uv.lock` - Locked dependency versions for reproducible builds
 
@@ -70,6 +74,14 @@ source .envrc
 ```
 
 ## Key Architecture Patterns
+
+### Transcription Backend Strategy Pattern
+The `transcriber.py` module implements a hybrid transcription strategy:
+- **HybridTranscriber**: Tries MLX Whisper first (Apple Silicon optimized), falls back to OpenAI Whisper
+- **MLXTranscriber**: Uses `mlx-whisper` for fast, hardware-accelerated transcription on Apple Silicon
+- **WhisperTranscriber**: Uses standard `openai-whisper` for CPU/GPU transcription
+- Configurable via `prefer_mlx` flag (default: True)
+- Both backends support model sizes: tiny, base, small, medium, large
 
 ### Frontmatter Posts
 Transcripts are stored as markdown files with YAML frontmatter containing metadata:
@@ -174,30 +186,71 @@ just lint-fix   # Fix linting issues automatically
 just check      # Run all quality checks
 ```
 
+### Testing
+```bash
+# Run all tests
+just test
+
+# Run tests with coverage report
+just test-coverage
+
+# Run pytest directly
+uv run pytest -v
+```
+
+### Utility Commands (just recipes)
+```bash
+# Setup and installation
+just setup              # Install dependencies and show next steps
+
+# Transcription shortcuts
+just transcribe-latest          # Transcribe the latest episode
+just transcribe-range 100 105   # Transcribe episodes 100-105
+
+# Data management
+just upload             # Upload all transcripts to both databases
+just upload-reindex     # Upload with OpenSearch reindexing
+just upload-pg-only     # Upload only to PostgreSQL
+just upload-os-only     # Upload only to OpenSearch
+just index-recreate     # Recreate OpenSearch index (destructive)
+
+# Maintenance
+just clean              # Remove Python cache and build artifacts
+just update-deps        # Update and sync dependencies
+just py-version         # Show Python version
+just uv-version         # Show uv version
+```
+
 ## Environment Configuration
 
-The `.envrc` file contains:
-- `OPENSEARCH_SERVICE_URI` - Aiven OpenSearch connection
-- `POSTGRES_SERVICE_URI` - Aiven PostgreSQL connection
+Required environment variables (configured via `.envrc` or manual setup):
+- `AIVEN_POSTGRES_SERVICE_URI` - Aiven PostgreSQL connection string
+- `OPENSEARCH_SERVICE_URI` - Aiven OpenSearch connection string
 - `POSTGRES_DB_NAME` - Database name for transcripts (default: "transcripts")
 - `POSTGRES_VECTOR_DB_NAME` - Table name for vector chunks
 - `INDEX_NAME` - OpenSearch index name
 
-Load environment with `direnv allow` or source `.envrc` manually.
+Load environment with `direnv allow` or `source .envrc` manually.
+
+**Note**: The `.envrc` file is not tracked in git (contains sensitive credentials). Copy from `.envrc.example` if available or set these variables in your shell.
 
 ## Development Notes
 
+- **Transcription Backend Selection**: The system automatically prefers MLX Whisper on Apple Silicon for performance, falling back to OpenAI Whisper. First run downloads the model (~140MB for "base" model).
 - **Web Scraping**: The `url_finder.py` module is tightly coupled to the Conduit website structure (CSS selectors for `.episode-wrap`, `<title>`, `<audio>` tags). Changes to the website layout will require updates here.
 - **Episode Number Extraction**: Uses regex pattern `^\d+` to extract episode numbers from titles and markdown filenames.
 - **Date Parsing**: Uses Arrow with custom format `r"MMMM[\s+]D[\w+,\s+]YYYY"` for publication dates.
 - **Embedding Storage**: VectorChunk records store embeddings as 768-dimensional vectors; ensure pgvector extension is installed and enabled in PostgreSQL.
 - **Error Handling**: `pg_ingest.py` uses logging (WARNING level by default); check logs for detailed error information during data processing.
+- **Contributing**: See `CONTRIBUTING.md` for PR requirements. PRs require an issue first, use format `[TYPE] <Issue Number> - Description`, and must pass `just check` quality checks.
 
 ## Common Issues
 
-- **Virtual Environment**: Run `uv sync` to install dependencies and create the virtual environment. If you encounter import errors, ensure you're running commands with `uv run` or have activated the venv
-- **Missing Environment Variables**: Ensure `.envrc` is loaded (via `direnv allow` or `source .envrc`) before running scripts
-- **Whisper Model Loading**: First run downloads the "base" model (~140MB) - network access required
-- **Database Connection**: Services are hosted on Aiven; ensure network access and credentials are valid
-- **Table Recreation**: `pg_ingest.py` and `quick_upload.py` can drop tables; use `--reindex` flag carefully
+- **Virtual Environment**: Run `uv sync` to install dependencies and create the virtual environment. If you encounter import errors, ensure you're running commands with `uv run` or have activated the venv with `source .venv/bin/activate`
+- **Missing Environment Variables**: Ensure `.envrc` is loaded (via `direnv allow` or `source .envrc`) before running scripts. The variable name is `AIVEN_POSTGRES_SERVICE_URI` (not `POSTGRES_SERVICE_URI`).
+- **MLX vs Whisper**: MLX Whisper requires Apple Silicon (M1/M2/M3). On other platforms, the system automatically falls back to OpenAI Whisper.
+- **Model Downloads**: First run downloads the transcription model (~140MB for "base") - network access required
+- **Database Connection**: Services are hosted on Aiven; ensure network access and valid credentials in environment variables
+- **Destructive Operations**: `pg_ingest.py` and `quick_upload.py` can drop tables; `--reindex` flag recreates OpenSearch index - use with caution
 - **Lock File**: The `uv.lock` file should be committed to version control for reproducible installs across environments
+- **Missing Imports in quick_upload.py**: Note that `quick_upload.py` has missing imports (`psycopg` and `os`) - these need to be added if running the script directly
