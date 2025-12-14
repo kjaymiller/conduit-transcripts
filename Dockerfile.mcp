@@ -1,33 +1,35 @@
-# Dockerfile for MCP server
-FROM python:3.12-slim
+# Simple MCP server with uv
+FROM python:3.13-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install only essential system deps
 RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install uv for fast dependency management
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+  libpq5 \
+  build-essential \
+  curl \
+  && rm -rf /var/lib/apt/lists/*
 
 # Copy dependency files
 COPY pyproject.toml uv.lock ./
+COPY conduit_transcripts/ ./conduit_transcripts/
+COPY apps/ ./apps/
+COPY cli/ ./cli/
 
-# Install dependencies using uv (including uvicorn for the server)
+# Install dependencies using uv (CPU-only, no ML deps)
+RUN pip install uv
 RUN uv sync --frozen --no-dev
 
-# Copy source code
-COPY src/ ./src/
+# Create non-root user
+RUN useradd -m -u 1000 appuser
+RUN chown -R appuser:appuser /app
+USER appuser
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app
 
 # Expose MCP server port
 EXPOSE 8000
 
-# Default command - runs the MCP server
-# Note: src/mcp_server.py needs to be implemented (see issue conduit-transcripts-ikr)
-CMD ["uv", "run", "python", "-m", "uvicorn", "src.mcp_server:app", "--host", "0.0.0.0", "--port", "8000"]
+# Default command
+CMD ["uv", "run", "python", "-m", "apps.mcp.main"]

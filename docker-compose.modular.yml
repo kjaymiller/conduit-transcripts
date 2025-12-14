@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: transcripts
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  transcribe-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.transcribe
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: transcripts
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./transcripts:/app/transcripts:ro
+
+  mcp-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: transcripts
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      EMBEDDING_DEVICE: cpu
+    ports:
+      - "8002:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./transcripts:/app/transcripts:ro
+
+volumes:
+  postgres_data:

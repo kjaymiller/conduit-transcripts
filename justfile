@@ -1,5 +1,5 @@
 # conduit-transcripts justfile
-# Common commands for the podcast transcript management system
+# Common commands for podcast transcript management system
 
 set shell := ["bash", "-c"]
 
@@ -19,9 +19,35 @@ set shell := ["bash", "-c"]
 @env-load:
     source .envrc
 
-# Transcription Commands
+# CLI Commands (using new modular structure)
 
-# Transcribe the latest episode
+# Search transcripts
+cli-search QUERY:
+    uv run python -m cli.main search "{{QUERY}}"
+
+# Vector search with CLI
+cli-search-vector QUERY LIMIT="10":
+    uv run python -m cli.main search "{{QUERY}}" --vector --limit {{LIMIT}}
+
+# Check episode status
+cli-status EPISODE:
+    uv run python -m cli.main status {{EPISODE}}
+
+# List episodes
+cli-list LIMIT="20":
+    uv run python -m cli.main list --limit {{LIMIT}}
+
+# Transcribe episode via CLI
+cli-transcribe EPISODE:
+    uv run python -m cli.main transcribe {{EPISODE}}
+
+# Ingest transcript file via CLI
+cli-ingest FILE:
+    uv run python -m cli.main ingest {{FILE}}
+
+# Legacy Transcription Commands (using old src structure)
+
+# Transcribe latest episode
 transcribe-latest:
     uv run python src/transcribe.py ep
 

@@ -1,33 +1,26 @@
-# Dockerfile for transcript ingestion service
-FROM python:3.12-slim
+# Ultra-minimal Dockerfile with uv
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm
 
 WORKDIR /app
 
-# Install system dependencies
+# Install only essential system deps
 RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install uv for fast dependency management
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+  libpq5 \
+  && rm -rf /var/lib/apt/lists/*
 
 # Copy dependency files
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies using uv
-RUN uv sync --frozen --no-dev
+# Install dependencies using uv (CPU-only, no ML deps)
+RUN uv sync --frozen --no-dev && \
+  uv pip install psycopg-binary
 
 # Copy source code
 COPY src/ ./src/
-
-# Copy transcripts directory (will be mounted as volume in docker-compose)
-# This is just to establish the directory structure
-RUN mkdir -p transcripts
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-# Default command (can be overridden in docker-compose)
-CMD ["uv", "run", "python", "src/quick_upload.py", "files", "--pg-only"]
+# Default command
+CMD ["uv", "run", "uvicorn", "src.ingestion_api:app", "--host", "0.0.0.0", "--port", "8000"]
