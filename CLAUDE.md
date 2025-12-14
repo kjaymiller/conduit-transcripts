@@ -36,11 +36,17 @@ This is a podcast transcript management system for the Conduit Podcast. It autom
   - `url_finder.py` - Web scraping for Conduit website (episode metadata, audio URLs)
   - `quick_upload.py` - Unified data loading script for both OpenSearch and PostgreSQL
   - `pg_ingest.py` - PostgreSQL data processing with embeddings and vector storage
+  - `mcp_server.py` - **MCP server for transcript search and summarization**
   - `os_ingest.py` - OpenSearch data ingestion (incomplete/skeleton)
   - `os_index.py` - OpenSearch index creation and setup
   - `download_audio_file.py` - Audio file download utility
 - `transcripts/` - Generated markdown files with frontmatter metadata and transcribed content
 - `infra/` - Infrastructure configuration files
+  - `init-db.sql` - PostgreSQL database initialization script
+  - `README.md` - Docker infrastructure documentation
+- `docker-compose.yml` - **Multi-service Docker setup (PostgreSQL, ingestion, MCP server)**
+- `Dockerfile.ingestion` - Container for transcript ingestion service
+- `Dockerfile.mcp` - Container for MCP server
 - `justfile` - Task runner recipes for common commands
 - `pyproject.toml` - Project metadata and dependencies
 - `uv.lock` - Locked dependency versions for reproducible builds
@@ -163,6 +169,58 @@ uv run python src/quick_upload.py files --os-only
 # Create/recreate OpenSearch index (destructive)
 uv run python src/os_index.py
 ```
+
+### MCP Server (Transcript Search)
+The MCP server provides API endpoints for searching transcripts using vector similarity and text matching. See `MCP_SERVER.md` for full documentation.
+
+```bash
+# Start MCP server locally
+uv run python src/mcp_server.py
+
+# Start with auto-reload for development
+uv run uvicorn src.mcp_server:app --host 0.0.0.0 --port 8000 --reload
+
+# Or use just recipes
+just mcp-server          # Start server
+just mcp-server-dev      # Start with auto-reload
+just mcp-health          # Test health endpoint
+just mcp-search-vector "python testing"  # Vector search
+just mcp-search-text "machine learning"  # Text search
+```
+
+**Key endpoints:**
+- `GET /health` - Health check
+- `GET /search/vector?query=...` - Semantic vector search
+- `GET /search/text?query=...` - Keyword text search
+- `GET /episode/{episode_number}` - Get full episode transcript
+- `GET /episodes` - List all episodes
+
+**Interactive API docs:** http://localhost:8000/docs
+
+### Docker Deployment
+Run all services (PostgreSQL, ingestion, MCP server) with Docker Compose:
+
+```bash
+# Copy environment configuration
+cp .env.docker.example .env.docker
+
+# Edit .env.docker with your passwords
+vim .env.docker
+
+# Start all services
+just docker-up
+
+# View logs
+just docker-logs
+
+# Access the MCP server
+curl http://localhost:8000/health
+
+# Stop services
+just docker-down
+```
+
+See `infra/README.md` for complete Docker documentation.
 
 ### Code Quality and Formatting
 The project uses **ruff** for both code formatting and linting:
