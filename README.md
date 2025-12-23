@@ -16,6 +16,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install dependencies and create virtual environment
 uv sync
+```
 
 ### Environment Configuration
 
@@ -33,7 +34,7 @@ The `.envrc` file should contain connection strings for OpenSearch, PostgreSQL, 
 
 ## Usage
 
-All commands below use `uv run` for environment isolation. If you've activated the virtual environment, you can omit `uv run`.
+The project provides a unified CLI tool called `conduit` for all operations.
 
 ### Transcription
 
@@ -41,19 +42,16 @@ Transcribe episodes from the Conduit website using OpenAI Whisper:
 
 ```bash
 # Transcribe the latest episode
-uv run python src/transcribe.py ep
+uv run conduit transcribe <episode_number>
 
-# Transcribe specific episodes
-uv run python src/transcribe.py ep 100 101 102
+# Transcribe and ingest (default)
+uv run conduit transcribe <episode_number> --ingest
 
-# Transcribe a range of episodes
-uv run python src/transcribe.py ep --range 100-105
+# Transcribe without ingestion
+uv run conduit transcribe <episode_number> --no-ingest
 
-# Transcribe all episodes (with confirmation)
-uv run python src/transcribe.py ep --all
-
-# Transcribe a local audio file
-uv run python src/transcribe.py file path/to/audio.mp3 --output path/to/output.txt
+# Use specific model size (tiny, base, small, medium, large)
+uv run conduit transcribe <episode_number> --model medium
 ```
 
 ### Data Ingestion
@@ -61,39 +59,53 @@ uv run python src/transcribe.py file path/to/audio.mp3 --output path/to/output.t
 Load transcripts into PostgreSQL and/or OpenSearch:
 
 ```bash
-# Load all transcripts into both databases
-uv run python src/quick_upload.py files
+# Ingest all files in transcripts directory
+uv run conduit ingest
 
-# Load specific files
-uv run python src/quick_upload.py files --file transcripts/episode1.md --file transcripts/episode2.md
+# Ingest specific file
+uv run conduit ingest --file transcripts/episode1.md
 
-# Load with index recreation (destroys existing OpenSearch index)
-uv run python src/quick_upload.py files --reindex
+# Recreate tables/indexes before ingestion
+uv run conduit ingest --reindex
 
-# Load to PostgreSQL only
-uv run python src/quick_upload.py files --pg-only
-
-# Load to OpenSearch only
-uv run python src/quick_upload.py files --os-only
+# Ingest only to specific database
+uv run conduit ingest --pg-only
+uv run conduit ingest --os-only
 ```
 
-### Index Management
+### Search
+
+Search through ingested transcripts:
 
 ```bash
-# Create or recreate OpenSearch index
-uv run python src/os_index.py
+# Text search (default)
+uv run conduit search "search term"
+
+# Vector semantic search
+uv run conduit search "search phrase" --vector
+```
+
+### Management
+
+```bash
+# Check episode status
+uv run conduit status <episode_number>
+
+# List recent episodes
+uv run conduit list
 ```
 
 ## Project Structure
 
-- `src/` - Application code
-  - `transcribe.py` - Whisper transcription and episode processing
-  - `url_finder.py` - Web scraping for episode metadata and audio URLs
-  - `os_ingest.py` - OpenSearch data ingestion
-  - `os_index.py` - OpenSearch index creation
-  - `pg_ingest.py` - PostgreSQL data processing with embeddings
-  - `quick_upload.py` - Unified data loader for both databases
-  - `download_audio_file.py` - Audio file download utility
+- `apps/` - Web applications
+  - `transcribe/` - Transcription and ingestion API
+  - `mcp/` - Model Context Protocol server for RAG
+- `cli/` - Command-line interface
+- `conduit_transcripts/` - Shared library code
+  - `database/` - Database operations (PostgreSQL, OpenSearch)
+  - `models/` - SQLAlchemy models
+  - `transcription/` - Transcription logic (Whisper, MLX)
+  - `utils/` - Shared utilities
 - `transcripts/` - Generated markdown files with metadata and transcriptions
 
 ## Troubleshooting
@@ -106,11 +118,9 @@ uv run python src/os_index.py
 
 **Database connection**: Services are on Aiven; verify credentials and network access
 
-**Table recreation**: `pg_ingest.py` and `quick_upload.py` can drop tables - use `--reindex` carefully
-
 ## Technology Stack
 
-- Python 3.12.5
+- Python 3.12+
 - OpenAI Whisper (transcription)
 - LangChain (text processing)
 - PostgreSQL with pgvector extension
