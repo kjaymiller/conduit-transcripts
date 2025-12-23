@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy project files
 COPY pyproject.toml uv.lock ./
+COPY README.md ./
 COPY conduit_transcripts/ ./conduit_transcripts/
 COPY apps/ ./apps/
 COPY cli/ ./cli/
