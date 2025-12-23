@@ -12,8 +12,9 @@ import typer
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from rich.progress import track
 from rich.prompt import Confirm
-from transcriber import HybridTranscriber
-from rss_feed import fetch_latest_episode_number, fetch_episode_by_number
+from conduit_transcripts.transcription import HybridTranscriber
+from conduit_transcripts.utils.rss import fetch_latest_episode_number, fetch_episode_by_number
+from conduit_transcripts.transcription.audio import download_audio_file as lib_download_audio_file
 
 app = typer.Typer()
 transcriber = HybridTranscriber(model="base", prefer_mlx=True)
@@ -61,7 +62,7 @@ def transcribe_file(
     ],
     output_file: typing_extensions.Annotated[
         typing.Optional[pathlib.Path],
-        typer.Option("--output", exists=True, file_okay=True, dir_okay=False),
+        typer.Option("--output", file_okay=True, dir_okay=False),
     ] = None,
 ):
     transcription = transcribe_audio_file(audio_file=input_file)

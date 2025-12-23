@@ -24,13 +24,14 @@ dependencies = [
   "beautifulsoup4>=4.12.0",
   "langchain-huggingface>=0.0.1",
   "langchain-text-splitters>=0.0.1",
+  "feedparser",
+  "slugify",
 ]
 
 # Optional ML dependencies
 [project.optional-dependencies]
 mlx = ["mlx-whisper>=0.4.3"]
 whisper = ["openai-whisper>=20230314"]
-opensearch = ["opensearch-py>=2.0.0"]
 
 # Development dependencies
 dev = [
@@ -69,4 +70,3 @@ line-ending = "auto"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
-

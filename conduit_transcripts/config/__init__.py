@@ -19,6 +19,8 @@ class Settings:
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "transcripts")
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")
+    POSTGRES_TABLE_TRANSCRIPTS: str = os.getenv("POSTGRES_TABLE_TRANSCRIPTS", "transcripts")
+    POSTGRES_TABLE_VECTORS: str = os.getenv("POSTGRES_TABLE_VECTORS", "transcript_vector")
 
     # OpenSearch configuration
     OPENSEARCH_HOST: str = os.getenv("OPENSEARCH_HOST", "localhost")

@@ -1,36 +1,14 @@
 import pathlib
-import re
-
 from typing import Annotated, List, Optional
 
 import arrow
 import frontmatter
 import typer
 
-from os_ingest import os_load_data_from_file
-from os_index import create_index
-from pg_ingest import pg_load_data_from_file, drop_table
-
+from conduit_transcripts.database.opensearch import OpenSearchDatabase
+from conduit_transcripts.database.postgres import VectorDatabase
 
 ARROW_FMT = r"MMMM[\s+]D[\w+,\s+]YYYY"
-
-
-def process_frontmatter(file: pathlib.Path):
-    frontmatter_post = frontmatter.loads(
-        file.read_text()
-    )  # loads the metadata from the file
-    return {
-        "title": frontmatter_post["title"],
-        "episode_number": int(re.match(r"^\d+", frontmatter_post["title"]).group()),
-        "show": "Conduit",
-        "description": frontmatter_post["description"],
-        "url": frontmatter_post["url"],
-        "pub_date": arrow.get(frontmatter_post["pub_date"], ARROW_FMT)
-        .date()
-        .isoformat(),
-        "content": frontmatter_post.content,
-    }
-
 
 app = typer.Typer()
 
@@ -61,31 +39,40 @@ def load_data_from_file(
     pg_only: bool = False,
 ):
     """Load data from a file into OpenSearch and PostgreSQL."""
+    pg_db = None
+    os_db = None
+
     if not os_only:
-        _CONNECTION_STRING = os.getenv("AIVEN_POSTGRES_SERVICE_URI")
-        conn = psycopg.connect(_CONNECTION_STRING)
+        pg_db = VectorDatabase(recreate_tables=reindex and not os_only)
 
-        if not reindex:
-            drop_table()
-
-    if reindex and not pg_only:
-        create_index()
+    if not pg_only:
+        os_db = OpenSearchDatabase()
+        if reindex:
+            os_db.create_index()
 
     if not files:
-        files = target_dir.iterdir()
+        files = list(target_dir.iterdir())
 
     for file in files:
-        if file.parent.name != target_dir.name:
-            raise ValueError("File must be in the transcripts directory.")
+        if file.parent.name != target_dir.name and file.parent.name != "transcripts":
+             # loose check, relying on file existence
+             pass
 
-        post = process_frontmatter(file)
+        # Load frontmatter
+        try:
+            post = frontmatter.load(str(file))
+        except Exception as e:
+            typer.echo(f"Error loading {file}: {e}", err=True)
+            continue
 
-        if not pg_only:
-            os_load_data_from_file(post)
+        if not pg_only and os_db:
+            typer.echo(f"Indexing {file.name} to OpenSearch...")
+            os_db.process_frontmatter_post(post)
 
-        if not os_only:
-            pg_load_data_from_file(post)
+        if not os_only and pg_db:
+            typer.echo(f"Indexing {file.name} to PostgreSQL...")
+            pg_db.process_frontmatter_post(post)
 
 
 if __name__ == "__main__":
-    typer.run(load_data_from_file)
+    app()

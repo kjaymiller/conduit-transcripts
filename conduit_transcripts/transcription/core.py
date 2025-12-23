@@ -1,10 +1,11 @@
 """Transcription abstraction layer with MLX support and Whisper fallback."""
 
+import logging
 import pathlib
 import typing
 import warnings
 
-import typer
+logger = logging.getLogger(__name__)
 
 
 class TranscriptionBackend:
@@ -29,7 +30,7 @@ class MLXTranscriber(TranscriptionBackend):
 
             self.mlx_whisper = mlx_whisper
             self.model = model
-            typer.echo(f"✓ MLX Whisper initialized with model: {model}")
+            logger.info(f"MLX Whisper initialized with model: {model}")
         except ImportError:
             raise ImportError(
                 "mlx-whisper not installed. Install with: pip install mlx-whisper"
@@ -38,13 +39,13 @@ class MLXTranscriber(TranscriptionBackend):
     def transcribe(self, audio_path: pathlib.Path) -> str:
         """Transcribe using MLX."""
         try:
-            typer.echo(f"Transcribing with MLX ({self.model} model)...")
+            logger.info(f"Transcribing with MLX ({self.model} model)...")
             result = self.mlx_whisper.transcribe(
                 str(audio_path), model=self.model, verbose=False
             )
             return result["text"]
         except Exception as e:
-            typer.echo(f"MLX transcription failed: {e}", err=True)
+            logger.error(f"MLX transcription failed: {e}")
             raise
 
 
@@ -62,7 +63,7 @@ class WhisperTranscriber(TranscriptionBackend):
 
             self.whisper = whisper
             self.model = whisper.load_model(model)
-            typer.echo(f"✓ OpenAI Whisper initialized with model: {model}")
+            logger.info(f"OpenAI Whisper initialized with model: {model}")
         except ImportError:
             raise ImportError(
                 "openai-whisper not installed. Install with: pip install openai-whisper"
@@ -71,12 +72,12 @@ class WhisperTranscriber(TranscriptionBackend):
     def transcribe(self, audio_path: pathlib.Path) -> str:
         """Transcribe using OpenAI Whisper."""
         try:
-            typer.echo("Transcribing with OpenAI Whisper...")
+            logger.info("Transcribing with OpenAI Whisper...")
             audio = self.whisper.load_audio(str(audio_path))
             result = self.model.transcribe(audio=audio, verbose=False)
             return result["text"]
         except Exception as e:
-            typer.echo(f"Whisper transcription failed: {e}", err=True)
+            logger.error(f"Whisper transcription failed: {e}")
             raise
 
 
@@ -103,67 +104,40 @@ class HybridTranscriber:
             # Try MLX first
             try:
                 self._primary_transcriber = MLXTranscriber(self.model)
-            except ImportError as e:
-                typer.echo(f"Warning: MLX not available ({e})", err=True)
-                self._primary_transcriber = None
+            except ImportError:
+                logger.warning("MLX not available, falling back to Whisper")
+                self._primary_transcriber = WhisperTranscriber(self.model)
 
-            # Whisper as fallback
-            try:
-                self._fallback_transcriber = WhisperTranscriber(self.model)
-            except ImportError as e:
-                typer.echo(f"Warning: Whisper not available ({e})", err=True)
-                self._fallback_transcriber = None
+            # Set fallback to Whisper
+            if not isinstance(self._primary_transcriber, WhisperTranscriber):
+                try:
+                    self._fallback_transcriber = WhisperTranscriber(self.model)
+                except ImportError:
+                    logger.warning("Whisper not available as fallback")
         else:
             # Use Whisper directly
             try:
                 self._primary_transcriber = WhisperTranscriber(self.model)
-            except ImportError as e:
-                typer.echo(f"Warning: Whisper not available ({e})", err=True)
-                self._primary_transcriber = None
+            except ImportError:
+                raise ImportError("Neither MLX nor Whisper is available")
 
-            # MLX as fallback
-            try:
-                self._fallback_transcriber = MLXTranscriber(self.model)
-            except ImportError as e:
-                typer.echo(f"Warning: MLX not available ({e})", err=True)
-                self._fallback_transcriber = None
-
-        if not self._primary_transcriber and not self._fallback_transcriber:
-            raise RuntimeError(
-                "No transcription backends available. Install mlx-whisper or openai-whisper."
-            )
+            # Set fallback to MLX
+            if not isinstance(self._primary_transcriber, MLXTranscriber):
+                try:
+                    self._fallback_transcriber = MLXTranscriber(self.model)
+                except ImportError:
+                    logger.warning("MLX not available as fallback")
 
     def transcribe(self, audio_path: pathlib.Path) -> str:
-        """Transcribe using primary backend, falling back if needed.
+        """Transcribe audio file with fallback support."""
+        if not self._primary_transcriber:
+            raise RuntimeError("No transcriber initialized")
 
-        Args:
-            audio_path: Path to the audio file
-
-        Returns:
-            Transcribed text
-
-        Raises:
-            RuntimeError: If all transcription backends fail
-        """
-        if self._primary_transcriber:
-            try:
-                return self._primary_transcriber.transcribe(audio_path)
-            except Exception as e:
-                if self._fallback_transcriber:
-                    typer.echo(
-                        f"Primary transcriber failed, trying fallback...", err=True
-                    )
-                    try:
-                        return self._fallback_transcriber.transcribe(audio_path)
-                    except Exception as fallback_error:
-                        raise RuntimeError(
-                            f"All transcription backends failed. Primary: {e}, Fallback: {fallback_error}"
-                        )
-                else:
-                    raise RuntimeError(
-                        f"Transcription failed and no fallback available: {e}"
-                    )
-        elif self._fallback_transcriber:
-            return self._fallback_transcriber.transcribe(audio_path)
-        else:
-            raise RuntimeError("No transcription backends available")
+        try:
+            return self._primary_transcriber.transcribe(audio_path)
+        except Exception as e:
+            if self._fallback_transcriber:
+                logger.warning(f"Primary transcriber failed: {e}. Trying fallback...")
+                return self._fallback_transcriber.transcribe(audio_path)
+            else:
+                raise
