@@ -1,17 +1,24 @@
 """CLI tool for Conduit Transcripts."""
 
+import logging
 import pathlib
 import typing
 
 import typer
 from rich.console import Console
 from rich.table import Table
+from sqlalchemy import select
 
 from conduit_transcripts.config import settings
+from conduit_transcripts.database.opensearch import OpenSearchDatabase
 from conduit_transcripts.database.postgres import VectorDatabase
 from conduit_transcripts.models import Transcript, VectorChunk
 from conduit_transcripts.transcription import HybridTranscriber
 from conduit_transcripts.transcription.metadata import get_audio_url_from_episode_number
+
+# Silence noisy loggers
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 app = typer.Typer(help="Conduit Transcripts CLI")
 console = Console()
@@ -29,7 +36,7 @@ def search(
         session = db.Session()
 
         if vector:
-            # Vector search
+            # Vector search using PostgreSQL
             from langchain_huggingface import HuggingFaceEmbeddings
 
             embedding_model = HuggingFaceEmbeddings(
@@ -140,6 +147,9 @@ def transcribe(
     episode_number: int = typer.Argument(..., help="Episode number to transcribe"),
     model: str = typer.Option("base", "--model", "-m", help="Model size"),
     prefer_mlx: bool = typer.Option(True, "--prefer-mlx/--no-mlx", help="Prefer MLX"),
+    ingest: bool = typer.Option(
+        True, "--ingest/--no-ingest", help="Ingest after transcription"
+    ),
 ):
     """Transcribe an episode."""
     try:
@@ -167,20 +177,49 @@ def transcribe(
         transcription = transcriber.transcribe(audio_file)
 
         # Save transcription
-        output_file = pathlib.Path(f"episode_{episode_number}_transcript.md")
+        import slugify
+
+        slug = slugify.slugify(metadata["title"])
+        output_file = pathlib.Path(f"transcripts/{slug}.md")
+        output_file.parent.mkdir(exist_ok=True)
+
+        import frontmatter
+
+        post = frontmatter.Post(content=transcription, **metadata)
+        # Ensure episode number is in metadata
+        post.metadata["episode_number"] = episode_number
+
         with output_file.open("w") as f:
-            f.write(f"# {metadata['title']}\n\n")
-            f.write(f"**Episode:** {episode_number}\n")
-            f.write(f"**Description:** {metadata['description']}\n")
-            f.write(f"**URL:** {metadata['url']}\n")
-            f.write(f"**Published:** {metadata['pub_date']}\n\n")
-            f.write("---\n\n")
-            f.write(transcription)
+            f.write(frontmatter.dumps(post))
 
         console.print(f"[green]Transcription saved to: {output_file}[/green]")
 
         # Cleanup
         audio_file.unlink()
+
+        if ingest:
+            console.print(f"[blue]Ingesting {output_file}...[/blue]")
+            db = VectorDatabase()
+            success = db.process_frontmatter_post(post)
+            if success:
+                console.print(f"[green]✓ Successfully ingested to PostgreSQL[/green]")
+            else:
+                console.print(f"[red]✗ Failed to ingest to PostgreSQL[/red]")
+
+            # Try OpenSearch
+            try:
+                os_db = OpenSearchDatabase()
+                os_success = os_db.process_frontmatter_post(post)
+                if os_success:
+                    console.print(
+                        f"[green]✓ Successfully ingested to OpenSearch[/green]"
+                    )
+                else:
+                    console.print(f"[red]✗ Failed to ingest to OpenSearch[/red]")
+            except ImportError:
+                console.print("[yellow]OpenSearch support not available[/yellow]")
+            except Exception as e:
+                console.print(f"[red]Error indexing to OpenSearch: {e}[/red]")
 
     except Exception as e:
         console.print(f"[red]Error transcribing: {e}[/red]")
@@ -189,30 +228,100 @@ def transcribe(
 
 @app.command()
 def ingest(
-    file_path: pathlib.Path = typer.Argument(..., help="Markdown file to ingest"),
+    files: typing.Optional[typing.List[pathlib.Path]] = typer.Option(
+        None, "--file", help="Specific file(s) to ingest"
+    ),
+    directory: pathlib.Path = typer.Option(
+        pathlib.Path("transcripts"), "--dir", help="Directory to ingest"
+    ),
+    reindex: bool = typer.Option(False, "--reindex", help="Recreate tables/indexes"),
+    pg_only: bool = typer.Option(False, "--pg-only", help="Ingest only to PostgreSQL"),
+    os_only: bool = typer.Option(False, "--os-only", help="Ingest only to OpenSearch"),
 ):
-    """Ingest a transcript file."""
+    """Ingest transcript files."""
     try:
         import frontmatter
 
-        console.print(f"[blue]Ingesting {file_path}...[/blue]")
-
-        # Load frontmatter
-        with file_path.open("r") as f:
-            post = frontmatter.load(f)
-
-        # Process with database
-        db = VectorDatabase()
-        success = db.process_frontmatter_post(post)
-
-        if success:
-            console.print(f"[green]✓ Successfully ingested {file_path}[/green]")
+        # Gather files
+        files_to_process = []
+        if files:
+            files_to_process.extend(files)
         else:
-            console.print(f"[red]✗ Failed to ingest {file_path}[/red]")
-            raise typer.Exit(1)
+            if directory.exists():
+                files_to_process.extend(directory.glob("*.md"))
+
+        if not files_to_process:
+            console.print("[yellow]No files found to ingest[/yellow]")
+            raise typer.Exit(0)
+
+        pg_db = None
+        os_db = None
+
+        if not os_only:
+            console.print("[blue]Initializing PostgreSQL database...[/blue]")
+            pg_db = VectorDatabase(recreate_tables=reindex)
+
+        if not pg_only:
+            try:
+                os_db = OpenSearchDatabase()
+                if reindex:
+                    console.print("[blue]Recreating OpenSearch index...[/blue]")
+                    os_db.create_index()
+            except ImportError:
+                console.print(
+                    "[yellow]OpenSearch support not available. Skipping OpenSearch indexing.[/yellow]"
+                )
+                if not pg_db:
+                    console.print(
+                        "[red]No databases available to write to. Exiting.[/red]"
+                    )
+                    raise typer.Exit(1)
+
+        with console.status(f"[bold green]Ingesting {len(files_to_process)} files...") as status:
+            success_count = 0
+            fail_count = 0
+
+            for file_path in files_to_process:
+                status.update(f"Processing {file_path.name}...")
+                try:
+                    # Load frontmatter
+                    with file_path.open("r") as f:
+                        post = frontmatter.load(f)
+
+                    file_success = True
+
+                    if pg_db:
+                        if not pg_db.process_frontmatter_post(post):
+                            file_success = False
+                            console.print(
+                                f"[red]Failed to ingest {file_path.name} to PostgreSQL[/red]"
+                            )
+
+                    if os_db:
+                        if not os_db.process_frontmatter_post(post):
+                            # Don't mark as full failure if only OS fails, unless OS-only
+                            if os_only:
+                                file_success = False
+                            console.print(
+                                f"[red]Failed to ingest {file_path.name} to OpenSearch[/red]"
+                            )
+
+                    if file_success:
+                        success_count += 1
+                    else:
+                        fail_count += 1
+
+                except Exception as e:
+                    fail_count += 1
+                    console.print(f"[red]Error processing {file_path.name}: {e}[/red]")
+
+        console.print(f"\n[bold]Ingestion complete![/bold]")
+        console.print(f"[green]Successful: {success_count}[/green]")
+        if fail_count > 0:
+            console.print(f"[red]Failed: {fail_count}[/red]")
 
     except Exception as e:
-        console.print(f"[red]Error ingesting: {e}[/red]")
+        console.print(f"[red]Error during ingestion: {e}[/red]")
         raise typer.Exit(1)
 
 
