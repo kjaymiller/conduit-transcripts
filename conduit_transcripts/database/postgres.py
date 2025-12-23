@@ -6,6 +6,7 @@ from typing import Optional
 
 import frontmatter
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_ollama import OllamaEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
@@ -48,11 +49,17 @@ class VectorDatabase:
             keep_separator="end",
         )
 
-        self.embedding_model = HuggingFaceEmbeddings(
-            model_name=settings.EMBEDDING_MODEL,
-            model_kwargs={"device": settings.EMBEDDING_DEVICE},
-            encode_kwargs={"normalize_embeddings": False},
-        )
+        if settings.EMBEDDING_PROVIDER == "ollama":
+            self.embedding_model = OllamaEmbeddings(
+                model=settings.EMBEDDING_MODEL,
+                base_url=settings.OLLAMA_BASE_URL,
+            )
+        else:
+            self.embedding_model = HuggingFaceEmbeddings(
+                model_name=settings.EMBEDDING_MODEL,
+                model_kwargs={"device": settings.EMBEDDING_DEVICE},
+                encode_kwargs={"normalize_embeddings": False},
+            )
 
     def process_frontmatter_post(self, post: frontmatter.Post) -> bool:
         """Process a frontmatter post and save to database.

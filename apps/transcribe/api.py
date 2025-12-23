@@ -5,8 +5,10 @@ import pathlib
 import shutil
 import tempfile
 import re
-from typing import Optional
+import uuid
+from typing import Optional, List, Dict, Any
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
 import arrow
 import frontmatter
@@ -27,6 +29,7 @@ from apps.transcribe.models import (
     StatusResponse,
     IngestResponse,
 )
+from conduit_transcripts.utils.tracker import tracker, TaskStatus
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -40,6 +43,11 @@ app = FastAPI(
 
 # Initialize transcriber (lazy loading)
 _transcriber = None
+
+# Thread pool for parallel ingestion
+# Using threads since embedding calls (to Ollama/OpenAI) are I/O bound
+# or handled by external libraries that might release GIL
+_executor = ThreadPoolExecutor(max_workers=4)
 
 ARROW_FMT = r"MMMM[\s+]D[\w+,\s+]YYYY"
 
@@ -106,137 +114,98 @@ async def check_status(episode_number: int):
         raise HTTPException(status_code=500, detail=f"Error checking status: {str(e)}")
 
 
-@app.post("/ingest/files")
-async def ingest_files(files: list[UploadFile] = File(...)):
-    """
-    Ingest multiple transcript markdown files with frontmatter.
-
-    Expected format per file:
-    ---
-    title: <episode_number> <episode_title>
-    description: <episode_description>
-    url: <episode_url>
-    pub_date: <publication_date>
-    ---
-    <transcript_content>
-    """
-    results = []
-    errors = []
-
-    for file in files:
-        try:
-            # Read file content
-            content = await file.read()
-
-            # Parse frontmatter
-            post = frontmatter.loads(content.decode("utf-8"))
-
-            # Validate required fields
-            required_fields = ["title", "description", "url", "pub_date"]
-            for field in required_fields:
-                if field not in post.metadata:
-                    raise ValueError(f"Missing required field in frontmatter: {field}")
-
-            # Extract episode number
-            if "episode_number" not in post.metadata:
-                episode_match = re.match(r"^\d+", str(post.metadata.get("title", "")))
-                if not episode_match:
-                    raise ValueError("Could not extract episode number from title")
-                episode_number = int(episode_match.group())
-            else:
-                # Cast to string first to satisfy strict type checkers, then int
-                episode_number = int(str(post.metadata["episode_number"]))
-
-            # Process with VectorDatabase
-            db = VectorDatabase()
-            success = db.process_frontmatter_post(post)
-
-            if success:
-                results.append({
-                    "status": "success",
-                    "filename": file.filename,
-                    "episode_number": episode_number,
-                    "message": f"Ingested episode {episode_number}"
-                })
-            else:
-                errors.append({
-                    "filename": file.filename,
-                    "error": "Failed to process transcript in database"
-                })
-
-        except Exception as e:
-            logger.error(f"Error ingesting file {file.filename}: {e}")
-            errors.append({
-                "filename": file.filename,
-                "error": str(e)
-            })
-
-    return JSONResponse(
-        status_code=200 if not errors else 207,  # 207 Multi-Status if partial success
-        content={
-            "results": results,
-            "errors": errors,
-            "total_processed": len(results),
-            "total_errors": len(errors)
-        },
-    )
-
-
-@app.post("/ingest/file")
-async def ingest_file(file: UploadFile = File(...)):
-    """Legacy endpoint for single file ingestion - redirects to multi-file handler internally."""
-    # Read content to pass to new logic, or just wrap it in a list
-    # Re-implementing logic here to avoid read/seek issues with UploadFile if passed directly
+def process_single_file(job_id: str, file_path: Path, filename: str):
+    """Process a single file in a background thread."""
     try:
-        # Read file content
-        content = await file.read()
-
+        tracker.update_file_status(job_id, filename, TaskStatus.PROCESSING)
+        
+        # Read content
+        content = file_path.read_text(encoding="utf-8")
+        
         # Parse frontmatter
-        post = frontmatter.loads(content.decode("utf-8"))
-
-        # Validate required fields
-        required_fields = ["title", "description", "url", "pub_date"]
-        for field in required_fields:
-            if field not in post.metadata:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Missing required field in frontmatter: {field}",
-                )
-
+        post = frontmatter.loads(content)
+        
         # Extract episode number
         if "episode_number" not in post.metadata:
             episode_match = re.match(r"^\d+", str(post.metadata.get("title", "")))
             if not episode_match:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Could not extract episode number from title",
-                )
+                raise ValueError("Could not extract episode number from title")
             episode_number = int(episode_match.group())
         else:
-            # Cast to string first to satisfy strict type checkers, then int
             episode_number = int(str(post.metadata["episode_number"]))
+            
+        tracker.update_file_status(job_id, filename, TaskStatus.PROCESSING, episode_number=episode_number)
 
         # Process with VectorDatabase
         db = VectorDatabase()
         success = db.process_frontmatter_post(post)
 
         if success:
-            return JSONResponse(
-                status_code=200,
-                content={
-                    "status": "success",
-                    "message": f"Ingested episode {episode_number}",
-                    "episode_number": episode_number,
-                },
-            )
+            tracker.update_file_status(job_id, filename, TaskStatus.COMPLETED)
         else:
-            raise HTTPException(status_code=500, detail="Failed to process transcript")
+            tracker.update_file_status(job_id, filename, TaskStatus.FAILED, error="Database processing failed")
 
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Error ingesting file: {e}")
-        raise HTTPException(status_code=500, detail=f"Error ingesting file: {str(e)}")
+        logger.error(f"Error processing file {filename}: {e}")
+        tracker.update_file_status(job_id, filename, TaskStatus.FAILED, error=str(e))
+    finally:
+        # Clean up temp file
+        if file_path.exists():
+            try:
+                file_path.unlink()
+            except Exception as e:
+                logger.warning(f"Failed to delete temp file {file_path}: {e}")
+
+
+@app.post("/ingest/files")
+async def ingest_files(background_tasks: BackgroundTasks, files: list[UploadFile] = File(...)):
+    """
+    Ingest multiple transcript markdown files in parallel.
+    Returns a job ID to track progress.
+    """
+    filenames = [f.filename or f"unknown_{uuid.uuid4()}.md" for f in files]
+    job_id = tracker.create_job(filenames)
+    
+    # Save files to disk first so threads can access them
+    temp_dir = Path(tempfile.gettempdir()) / "conduit_ingest" / job_id
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    
+    for i, file in enumerate(files):
+        filename = filenames[i]
+        file_path = temp_dir / filename
+        try:
+            with file_path.open("wb") as f:
+                shutil.copyfileobj(file.file, f)
+            
+            # Submit to thread pool
+            background_tasks.add_task(process_single_file, job_id, file_path, filename)
+        except Exception as e:
+            tracker.update_file_status(job_id, filename, TaskStatus.FAILED, error=f"Upload failed: {str(e)}")
+
+    return JSONResponse(
+        status_code=202,
+        content={
+            "job_id": job_id,
+            "message": f"Started ingestion for {len(files)} files",
+            "status_url": f"/ingest/status/{job_id}"
+        },
+    )
+
+
+@app.get("/ingest/status/{job_id}")
+async def get_ingest_status(job_id: str):
+    """Get status of an ingestion job."""
+    job = tracker.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    return job.dict()
+
+
+@app.post("/ingest/file")
+async def ingest_file(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+    """Legacy endpoint for single file ingestion - redirects to multi-file handler."""
+    return await ingest_files(background_tasks, [file])
 
 
 async def transcribe_episode_background(episode_number: int, audio_url: str):

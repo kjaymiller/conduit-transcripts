@@ -28,6 +28,7 @@ dependencies = [
   "slugify",
   "alembic>=1.13.0",
   "sentence-transformers>=5.2.0",
+  "langchain-ollama>=1.0.1",
 ]
 
 # Optional ML dependencies

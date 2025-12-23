@@ -36,10 +36,14 @@ class Settings:
     PREFER_MLX: bool = os.getenv("PREFER_MLX", "true").lower() == "true"
 
     # Embedding configuration
+    EMBEDDING_PROVIDER: str = os.getenv("EMBEDDING_PROVIDER", "ollama")  # ollama or huggingface
     EMBEDDING_MODEL: str = os.getenv(
-        "EMBEDDING_MODEL", "sentence-transformers/all-mpnet-base-v2"
+        "EMBEDDING_MODEL", "nomic-embed-text"
     )
     EMBEDDING_DEVICE: str = os.getenv("EMBEDDING_DEVICE", "cpu")
+    
+    # Ollama configuration
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
 
     # API configuration
     API_HOST: str = os.getenv("API_HOST", "0.0.0.0")
