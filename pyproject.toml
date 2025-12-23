@@ -26,6 +26,7 @@ dependencies = [
   "langchain-text-splitters>=0.0.1",
   "feedparser",
   "slugify",
+  "alembic>=1.13.0",
 ]
 
 # Optional ML dependencies
