@@ -2,12 +2,17 @@
 
 import logging
 import pathlib
+import shutil
+import tempfile
+import re
 from typing import Optional
+from pathlib import Path
 
 import arrow
 import frontmatter
-from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Form
+from fastapi.responses import JSONResponse, HTMLResponse
+from sqlalchemy import text
 
 from conduit_transcripts.config import settings
 from conduit_transcripts.database.postgres import VectorDatabase
@@ -133,9 +138,7 @@ async def ingest_file(file: UploadFile = File(...)):
 
         # Extract episode number
         if "episode_number" not in post.metadata:
-            import re
-
-            episode_match = re.match(r"^\d+", post.metadata["title"])
+            episode_match = re.match(r"^\d+", str(post.metadata.get("title", "")))
             if not episode_match:
                 raise HTTPException(
                     status_code=400,
@@ -143,7 +146,8 @@ async def ingest_file(file: UploadFile = File(...)):
                 )
             episode_number = int(episode_match.group())
         else:
-            episode_number = int(post.metadata["episode_number"])
+            # Cast to string first to satisfy strict type checkers, then int
+            episode_number = int(str(post.metadata["episode_number"]))
 
         # Process with VectorDatabase
         db = VectorDatabase()
@@ -206,6 +210,44 @@ async def transcribe_episode_background(episode_number: int, audio_url: str):
         logger.error(f"Error in background transcription: {e}")
 
 
+async def transcribe_file_background(episode_number: int, file_path: Path):
+    """Background task to transcribe an uploaded file."""
+    try:
+        logger.info(f"Starting transcription for uploaded file, episode {episode_number}")
+
+        # Transcribe
+        transcriber = get_transcriber()
+        transcription = transcriber.transcribe(file_path)
+
+        # Create frontmatter post
+        post = frontmatter.Post(content=transcription)
+        post.metadata["title"] = f"{episode_number} - Uploaded Episode"
+        post.metadata["episode_number"] = episode_number
+        post.metadata["description"] = f"Transcription of uploaded episode {episode_number}"
+        post.metadata["url"] = "uploaded-file"
+        post.metadata["pub_date"] = arrow.now().format(ARROW_FMT)
+
+        # Process with VectorDatabase
+        db = VectorDatabase()
+        success = db.process_frontmatter_post(post)
+
+        # Clean up temp file
+        file_path.unlink()
+
+        if success:
+            logger.info(
+                f"Successfully transcribed and ingested uploaded episode {episode_number}"
+            )
+        else:
+            logger.error(f"Failed to ingest transcription for uploaded episode {episode_number}")
+
+    except Exception as e:
+        logger.error(f"Error in background file transcription: {e}")
+        # Ensure cleanup even on error
+        if file_path.exists():
+            file_path.unlink()
+
+
 @app.post("/transcribe", response_model=TranscribeResponse)
 async def transcribe_episode(
     request: TranscribeRequest, background_tasks: BackgroundTasks
@@ -241,10 +283,21 @@ async def transcribe_episode(
             episode_number = None
 
         # Start background transcription
-        if episode_number:
+        if episode_number and audio_url:
             background_tasks.add_task(
                 transcribe_episode_background, episode_number, audio_url
             )
+        elif audio_url and not episode_number:
+             # Case where only URL is provided - user should ideally provide episode number
+             # but we can try to extract or fail gracefully or handle it.
+             # For now, let's require episode number if using internal logic, or just fail if not found.
+             # Actually, the logic above sets episode_number to None if not provided.
+             # If we have audio_url but no episode_number, transcribe_episode_background expects int.
+             # We might need to generate one or update existing logic.
+             # For simplicity, if episode_number is missing, we can't ingest properly with current DB model.
+             # We could parse URL for number.
+             raise HTTPException(status_code=400, detail="Episode number is required for ingestion.")
+
 
         return TranscribeResponse(
             status="accepted",
@@ -261,16 +314,44 @@ async def transcribe_episode(
         )
 
 
-@app.get("/")
+@app.post("/transcribe/file", response_model=TranscribeResponse)
+async def transcribe_uploaded_file(
+    background_tasks: BackgroundTasks,
+    episode_number: int = Form(...),
+    file: UploadFile = File(...),
+):
+    """Upload and transcribe an audio file."""
+    try:
+        # Save uploaded file to temp file
+        # We need to preserve the extension for some transcribers/ffmpeg to hint format
+        filename = file.filename or "upload.mp3"
+        suffix = Path(filename).suffix
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            shutil.copyfileobj(file.file, tmp)
+            tmp_path = Path(tmp.name)
+
+        background_tasks.add_task(
+            transcribe_file_background, episode_number, tmp_path
+        )
+
+        return TranscribeResponse(
+            status="accepted",
+            message="File uploaded and transcription started in background",
+            episode_number=episode_number,
+        )
+
+    except Exception as e:
+        logger.error(f"Error handling file upload: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Error handling file upload: {str(e)}"
+        )
+
+
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    """API root endpoint."""
-    return {
-        "service": "Conduit Transcript Transcription API",
-        "version": "1.0.0",
-        "endpoints": {
-            "health": "/health",
-            "status": "/status/{episode_number}",
-            "ingest_file": "/ingest/file",
-            "transcribe": "/transcribe",
-        },
-    }
+    """Serve the ingestion UI."""
+    template_path = Path(__file__).parent / "templates" / "index.html"
+    if not template_path.exists():
+         return HTMLResponse(content="<h1>Error: Template not found</h1>", status_code=500)
+    
+    return HTMLResponse(content=template_path.read_text(encoding="utf-8"))
