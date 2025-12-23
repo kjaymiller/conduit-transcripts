@@ -230,7 +230,7 @@ docker-restart:
 
 # Run ingestion manually
 docker-ingest:
-    docker-compose run --rm ingestion python src/quick_upload.py files --pg-only
+    docker-compose run --rm ingestion uv run conduit ingest --pg-only
 
 # Access PostgreSQL shell
 docker-psql:

@@ -24,7 +24,7 @@ services:
   ingestion:
     build:
       context: .
-      dockerfile: Dockerfile.ingestion
+      dockerfile: Dockerfile.transcribe
     container_name: conduit-ingestion
     environment:
       POSTGRES_HOST: postgres
@@ -35,7 +35,8 @@ services:
       POSTGRES_VECTOR_DB_NAME: ${POSTGRES_VECTOR_DB_NAME:-vector_chunks}
     volumes:
       - ./transcripts:/app/transcripts:ro
-      - ./src:/app/src:ro
+      - ./conduit_transcripts:/app/conduit_transcripts:ro
+      - ./apps:/app/apps:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,7 +55,7 @@ services:
         "uv",
         "run",
         "uvicorn",
-        "src.ingestion_api:app",
+        "apps.transcribe.api:app",
         "--host",
         "0.0.0.0",
         "--port",
@@ -81,6 +82,9 @@ services:
         condition: service_healthy
     ports:
       - "${MCP_PORT:-8000}:8000"
+    volumes:
+      - ./conduit_transcripts:/app/conduit_transcripts:ro
+      - ./apps:/app/apps:ro
     networks:
       - conduit-network
     command:
@@ -88,7 +92,7 @@ services:
         "uv",
         "run",
         "uvicorn",
-        "src.mcp_server:app",
+        "apps.mcp.server:app",
         "--host",
         "0.0.0.0",
         "--port",
