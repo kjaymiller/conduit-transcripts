@@ -46,9 +46,15 @@ def load_data_from_file(
         pg_db = VectorDatabase(recreate_tables=reindex and not os_only)
 
     if not pg_only:
-        os_db = OpenSearchDatabase()
-        if reindex:
-            os_db.create_index()
+        try:
+            os_db = OpenSearchDatabase()
+            if reindex:
+                os_db.create_index()
+        except ImportError:
+            typer.echo("OpenSearch support not available. Skipping OpenSearch indexing.", err=True)
+            if not pg_db:
+                typer.echo("No databases available to write to. Exiting.", err=True)
+                raise typer.Exit(code=1)
 
     if not files:
         files = list(target_dir.iterdir())

@@ -7,7 +7,13 @@ from typing import Dict, Any, List, Optional
 import frontmatter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from opensearchpy import OpenSearch, helpers
+
+# Import OpenSearch lazily
+try:
+    from opensearchpy import OpenSearch, helpers
+    OPENSEARCH_AVAILABLE = True
+except ImportError:
+    OPENSEARCH_AVAILABLE = False
 
 from conduit_transcripts.config import settings
 
@@ -19,6 +25,11 @@ class OpenSearchDatabase:
 
     def __init__(self):
         """Initialize the OpenSearch handler."""
+        if not OPENSEARCH_AVAILABLE:
+            raise ImportError(
+                "opensearch-py is not installed. Install with 'uv pip install conduit-transcripts[opensearch]' or 'uv sync --extra opensearch'"
+            )
+            
         self.client = OpenSearch(
             hosts=[{"host": settings.OPENSEARCH_HOST, "port": int(settings.OPENSEARCH_PORT)}],
             use_ssl=True,

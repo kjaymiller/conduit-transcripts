@@ -142,7 +142,6 @@ dependencies = [
     { name = "httpx" },
     { name = "langchain-huggingface" },
     { name = "langchain-text-splitters" },
-    { name = "opensearch-py" },
     { name = "pgvector" },
     { name = "psycopg" },
     { name = "python-dotenv" },
@@ -165,6 +164,9 @@ dev = [
 mlx = [
     { name = "mlx-whisper" },
 ]
+opensearch = [
+    { name = "opensearch-py" },
+]
 whisper = [
     { name = "openai-whisper" },
 ]
@@ -182,7 +184,7 @@ requires-dist = [
     { name = "mlx-whisper", marker = "extra == 'mlx'", specifier = ">=0.4.3" },
     { name = "openai-whisper", marker = "extra == 'dev'", specifier = ">=20230314" },
     { name = "openai-whisper", marker = "extra == 'whisper'", specifier = ">=20230314" },
-    { name = "opensearch-py", specifier = ">=2.0.0" },
+    { name = "opensearch-py", marker = "extra == 'opensearch'", specifier = ">=2.0.0" },
     { name = "pgvector", specifier = ">=0.1.0" },
     { name = "psycopg", specifier = ">=3.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
@@ -196,7 +198,7 @@ requires-dist = [
     { name = "typer", specifier = ">=0.9.0" },
     { name = "uvicorn", specifier = ">=0.24.0" },
 ]
-provides-extras = ["mlx", "whisper", "dev"]
+provides-extras = ["opensearch", "mlx", "whisper", "dev"]
 
 [[package]]
 name = "events"

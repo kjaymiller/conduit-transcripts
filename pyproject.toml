@@ -26,11 +26,11 @@ dependencies = [
   "langchain-text-splitters>=0.0.1",
   "feedparser",
   "slugify",
-  "opensearch-py>=2.0.0",
 ]
 
 # Optional ML dependencies
 [project.optional-dependencies]
+opensearch = ["opensearch-py>=2.0.0"]
 mlx = ["mlx-whisper>=0.4.3"]
 whisper = ["openai-whisper>=20230314"]
 
