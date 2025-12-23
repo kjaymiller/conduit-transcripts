@@ -51,11 +51,15 @@ class Settings:
     @property
     def postgres_uri(self) -> str:
         """Get PostgreSQL connection URI."""
-        if self.AIVEN_POSTGRES_SERVICE_URI:
-            return self.AIVEN_POSTGRES_SERVICE_URI
-        if self.POSTGRES_SERVICE_URI:
-            return self.POSTGRES_SERVICE_URI
-        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        uri = self.AIVEN_POSTGRES_SERVICE_URI or self.POSTGRES_SERVICE_URI
+        if uri:
+            if uri.startswith("postgres://"):
+                return uri.replace("postgres://", "postgresql+psycopg://", 1)
+            if uri.startswith("postgresql://"):
+                return uri.replace("postgresql://", "postgresql+psycopg://", 1)
+            return uri
+            
+        return f"postgresql+psycopg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     @property
     def opensearch_uri(self) -> str:
