@@ -106,12 +106,12 @@ async def check_status(episode_number: int):
         raise HTTPException(status_code=500, detail=f"Error checking status: {str(e)}")
 
 
-@app.post("/ingest/file")
-async def ingest_file(file: UploadFile = File(...)):
+@app.post("/ingest/files")
+async def ingest_files(files: list[UploadFile] = File(...)):
     """
-    Ingest a transcript markdown file with frontmatter.
+    Ingest multiple transcript markdown files with frontmatter.
 
-    Expected format:
+    Expected format per file:
     ---
     title: <episode_number> <episode_title>
     description: <episode_description>
@@ -120,6 +120,73 @@ async def ingest_file(file: UploadFile = File(...)):
     ---
     <transcript_content>
     """
+    results = []
+    errors = []
+
+    for file in files:
+        try:
+            # Read file content
+            content = await file.read()
+
+            # Parse frontmatter
+            post = frontmatter.loads(content.decode("utf-8"))
+
+            # Validate required fields
+            required_fields = ["title", "description", "url", "pub_date"]
+            for field in required_fields:
+                if field not in post.metadata:
+                    raise ValueError(f"Missing required field in frontmatter: {field}")
+
+            # Extract episode number
+            if "episode_number" not in post.metadata:
+                episode_match = re.match(r"^\d+", str(post.metadata.get("title", "")))
+                if not episode_match:
+                    raise ValueError("Could not extract episode number from title")
+                episode_number = int(episode_match.group())
+            else:
+                # Cast to string first to satisfy strict type checkers, then int
+                episode_number = int(str(post.metadata["episode_number"]))
+
+            # Process with VectorDatabase
+            db = VectorDatabase()
+            success = db.process_frontmatter_post(post)
+
+            if success:
+                results.append({
+                    "status": "success",
+                    "filename": file.filename,
+                    "episode_number": episode_number,
+                    "message": f"Ingested episode {episode_number}"
+                })
+            else:
+                errors.append({
+                    "filename": file.filename,
+                    "error": "Failed to process transcript in database"
+                })
+
+        except Exception as e:
+            logger.error(f"Error ingesting file {file.filename}: {e}")
+            errors.append({
+                "filename": file.filename,
+                "error": str(e)
+            })
+
+    return JSONResponse(
+        status_code=200 if not errors else 207,  # 207 Multi-Status if partial success
+        content={
+            "results": results,
+            "errors": errors,
+            "total_processed": len(results),
+            "total_errors": len(errors)
+        },
+    )
+
+
+@app.post("/ingest/file")
+async def ingest_file(file: UploadFile = File(...)):
+    """Legacy endpoint for single file ingestion - redirects to multi-file handler internally."""
+    # Read content to pass to new logic, or just wrap it in a list
+    # Re-implementing logic here to avoid read/seek issues with UploadFile if passed directly
     try:
         # Read file content
         content = await file.read()
