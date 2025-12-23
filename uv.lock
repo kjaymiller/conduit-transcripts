@@ -142,6 +142,7 @@ dependencies = [
     { name = "httpx" },
     { name = "langchain-huggingface" },
     { name = "langchain-text-splitters" },
+    { name = "opensearch-py" },
     { name = "pgvector" },
     { name = "psycopg" },
     { name = "python-dotenv" },
@@ -158,7 +159,6 @@ dependencies = [
 dev = [
     { name = "mlx-whisper" },
     { name = "openai-whisper" },
-    { name = "opensearch-py" },
     { name = "pytest" },
     { name = "ruff" },
 ]
@@ -182,7 +182,7 @@ requires-dist = [
     { name = "mlx-whisper", marker = "extra == 'mlx'", specifier = ">=0.4.3" },
     { name = "openai-whisper", marker = "extra == 'dev'", specifier = ">=20230314" },
     { name = "openai-whisper", marker = "extra == 'whisper'", specifier = ">=20230314" },
-    { name = "opensearch-py", marker = "extra == 'dev'", specifier = ">=2.0.0" },
+    { name = "opensearch-py", specifier = ">=2.0.0" },
     { name = "pgvector", specifier = ">=0.1.0" },
     { name = "psycopg", specifier = ">=3.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
