@@ -383,6 +383,45 @@ async def transcribe_uploaded_file(
         )
 
 
+@app.get("/transcripts")
+async def list_transcripts(limit: int = 100, offset: int = 0):
+    """List all ingested transcripts."""
+    try:
+        db = VectorDatabase()
+        session = db.Session()
+        
+        # Query transcripts sorted by episode number descending
+        transcripts = (
+            session.query(Transcript)
+            .filter(Transcript.podcast == "Conduit")
+            .order_by(Transcript.episode_number.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+        
+        result = []
+        for t in transcripts:
+            chunks_count = len(t.chunks)
+            title = t.meta.get("title", f"Episode {t.episode_number}")
+            pub_date = t.meta.get("pub_date", "")
+            
+            result.append({
+                "episode_number": t.episode_number,
+                "title": title,
+                "pub_date": pub_date,
+                "chunks_count": chunks_count,
+                "created_at": t.created_at.isoformat() if t.created_at else None
+            })
+            
+        session.close()
+        return {"transcripts": result, "count": len(result)}
+        
+    except Exception as e:
+        logger.error(f"Error listing transcripts: {e}")
+        raise HTTPException(status_code=500, detail=f"Error listing transcripts: {str(e)}")
+
+
 @app.get("/", response_class=HTMLResponse)
 async def root():
     """Serve the ingestion UI."""

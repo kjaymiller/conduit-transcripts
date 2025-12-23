@@ -172,6 +172,12 @@
         <div id="transcribeUrlResult" class="result"></div>
     </div>
 
+    <div class="card">
+        <h2>Ingested Transcripts</h2>
+        <button id="refreshTranscripts" style="margin-bottom: 1rem; padding: 0.5rem;">Refresh List</button>
+        <div id="transcriptList">Loading...</div>
+    </div>
+
     <script>
         function pollStatus(statusUrl, resultDiv) {
             resultDiv.innerHTML = '<div class="progress-container">Starting job...</div>';
@@ -215,6 +221,44 @@
             
             poll();
         }
+
+        async function loadTranscripts() {
+            const listDiv = document.getElementById('transcriptList');
+            try {
+                const res = await fetch('/transcripts?limit=20');
+                const data = await res.json();
+                
+                if (data.transcripts && data.transcripts.length > 0) {
+                    let html = '<table style="width:100%; border-collapse: collapse;">';
+                    html += '<tr style="text-align:left; background:#f1f5f9;">';
+                    html += '<th style="padding:0.5rem;">Ep #</th>';
+                    html += '<th style="padding:0.5rem;">Title</th>';
+                    html += '<th style="padding:0.5rem;">Date</th>';
+                    html += '<th style="padding:0.5rem;">Chunks</th>';
+                    html += '</tr>';
+                    
+                    data.transcripts.forEach(t => {
+                        html += '<tr style="border-bottom: 1px solid #eee;">';
+                        html += `<td style="padding:0.5rem;">${t.episode_number}</td>`;
+                        html += `<td style="padding:0.5rem;">${t.title}</td>`;
+                        html += `<td style="padding:0.5rem;">${t.pub_date || '-'}</td>`;
+                        html += `<td style="padding:0.5rem;">${t.chunks_count}</td>`;
+                        html += '</tr>';
+                    });
+                    html += '</table>';
+                    listDiv.innerHTML = html;
+                } else {
+                    listDiv.innerHTML = '<p>No transcripts found.</p>';
+                }
+            } catch (e) {
+                listDiv.innerHTML = `<p style="color:red">Error loading transcripts: ${e.message}</p>`;
+            }
+        }
+
+        document.getElementById('refreshTranscripts').addEventListener('click', loadTranscripts);
+        
+        // Initial load
+        loadTranscripts();
 
         function setupForm(id, endpoint, isJson = false) {
             const form = document.getElementById(id);
