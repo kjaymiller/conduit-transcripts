@@ -33,6 +33,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_VECTOR_DB_NAME: ${POSTGRES_VECTOR_DB_NAME:-vector_chunks}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
     volumes:
       - ./transcripts:/app/transcripts:ro
       - ./conduit_transcripts:/app/conduit_transcripts:ro
@@ -75,11 +76,14 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       MCP_PORT: ${MCP_PORT:-8000}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
     depends_on:
       postgres:
         condition: service_healthy
       ingestion:
         condition: service_healthy
+      ollama:
+        condition: service_started
     ports:
       - "${MCP_PORT:-8000}:8000"
     volumes:
@@ -99,8 +103,25 @@ services:
         "8000",
       ]
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: conduit-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - conduit-network
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
+    driver: local
+  ollama_data:
     driver: local
 
 networks:
