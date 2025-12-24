@@ -130,10 +130,37 @@
         .status-processing { background: #e0f2fe; color: #0284c7; }
         .status-completed { background: #dcfce7; color: #166534; }
         .status-failed { background: #fee2e2; color: #991b1b; }
+        nav {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+        }
+        nav a {
+            text-decoration: none;
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+        nav a:hover, nav a.active {
+            background-color: #e0f2fe;
+            color: var(--primary);
+        }
     </style>
 </head>
 <body>
     <h1>Conduit Ingestion</h1>
+
+    <nav>
+        <a href="/" class="active">Ingestion & Status</a>
+        <a href="/downloads">Downloaded Transcripts</a>
+    </nav>
+
+    <div class="card">
+        <h2>Operation Status</h2>
+        <div id="globalStatus" class="result" style="display: none;"></div>
+    </div>
 
     <div class="card">
         <h2>Ingest Transcripts (.md)</h2>
@@ -142,7 +169,6 @@
             <input type="file" id="transcriptFiles" accept=".md" multiple required>
             <button type="submit">Ingest Files <span class="loader"></span></button>
         </form>
-        <div id="ingestResult" class="result"></div>
     </div>
 
     <div class="card">
@@ -155,7 +181,6 @@
             <input type="file" id="audioFile" accept=".mp3,.m4a,.wav" required>
             <button type="submit">Transcribe <span class="loader"></span></button>
         </form>
-        <div id="transcribeFileResult" class="result"></div>
     </div>
 
     <div class="card">
@@ -169,24 +194,15 @@
             
             <button type="submit">Start Transcription <span class="loader"></span></button>
         </form>
-        <div id="transcribeUrlResult" class="result"></div>
-    </div>
-
-    <div class="card">
-        <h2>Ingested Transcripts</h2>
-        <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem;">
-            <input type="text" id="transcriptSearch" placeholder="Search transcripts..." style="flex-grow: 1;">
-            <button id="searchBtn">Search</button>
-            <button id="refreshTranscripts" style="padding: 0.5rem;">Refresh</button>
-        </div>
-        <div id="transcriptList">Loading...</div>
     </div>
 
     <script>
-        function pollStatus(statusUrl, resultDiv) {
-            resultDiv.innerHTML = '<div class="progress-container">Starting job...</div>';
-            resultDiv.className = 'result info';
-            resultDiv.style.display = 'block';
+        const statusDiv = document.getElementById('globalStatus');
+
+        function pollStatus(statusUrl) {
+            statusDiv.innerHTML = '<div class="progress-container">Starting job...</div>';
+            statusDiv.className = 'result info';
+            statusDiv.style.display = 'block';
             
             const poll = async () => {
                 try {
@@ -209,87 +225,37 @@
                     }
                     html += '</div>';
                     
-                    resultDiv.innerHTML = html;
+                    statusDiv.innerHTML = html;
                     
                     if (job.status === 'completed' || job.status === 'failed') {
-                        resultDiv.className = job.status === 'completed' ? 'result success' : 'result error';
+                        statusDiv.className = job.status === 'completed' ? 'result success' : 'result error';
                         return;
                     }
                     
                     setTimeout(poll, 1000);
                 } catch (e) {
-                    resultDiv.innerHTML = `Error polling status: ${e.message}`;
-                    resultDiv.className = 'result error';
+                    statusDiv.innerHTML = `Error polling status: ${e.message}`;
+                    statusDiv.className = 'result error';
                 }
             };
             
             poll();
         }
 
-        async function loadTranscripts() {
-            const listDiv = document.getElementById('transcriptList');
-            const searchInput = document.getElementById('transcriptSearch');
-            const query = searchInput ? searchInput.value.trim() : '';
-            
-            try {
-                let url = '/transcripts?limit=20';
-                if (query) {
-                    url += `&q=${encodeURIComponent(query)}`;
-                }
-                
-                const res = await fetch(url);
-                const data = await res.json();
-                
-                if (data.transcripts && data.transcripts.length > 0) {
-                    let html = '<table style="width:100%; border-collapse: collapse;">';
-                    html += '<tr style="text-align:left; background:#f1f5f9;">';
-                    html += '<th style="padding:0.5rem;">Ep #</th>';
-                    html += '<th style="padding:0.5rem;">Title</th>';
-                    html += '<th style="padding:0.5rem;">Date</th>';
-                    html += '<th style="padding:0.5rem;">Chunks</th>';
-                    html += '</tr>';
-                    
-                    data.transcripts.forEach(t => {
-                        html += '<tr style="border-bottom: 1px solid #eee;">';
-                        html += `<td style="padding:0.5rem;">${t.episode_number}</td>`;
-                        html += `<td style="padding:0.5rem;">${t.title}</td>`;
-                        html += `<td style="padding:0.5rem;">${t.pub_date || '-'}</td>`;
-                        html += `<td style="padding:0.5rem;">${t.chunks_count}</td>`;
-                        html += '</tr>';
-                    });
-                    html += '</table>';
-                    listDiv.innerHTML = html;
-                } else {
-                    listDiv.innerHTML = '<p>No transcripts found.</p>';
-                }
-            } catch (e) {
-                listDiv.innerHTML = `<p style="color:red">Error loading transcripts: ${e.message}</p>`;
-            }
-        }
-
-        document.getElementById('refreshTranscripts').addEventListener('click', loadTranscripts);
-        document.getElementById('searchBtn').addEventListener('click', loadTranscripts);
-        document.getElementById('transcriptSearch').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                loadTranscripts();
-            }
-        });
-        
-        // Initial load
-        loadTranscripts();
-
         function setupForm(id, endpoint, isJson = false) {
             const form = document.getElementById(id);
-            const resultDiv = document.getElementById(id.replace('Form', 'Result'));
             
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const btn = form.querySelector('button');
                 const loader = btn.querySelector('.loader');
                 
-                resultDiv.style.display = 'none';
+                statusDiv.style.display = 'none';
                 btn.disabled = true;
                 loader.style.display = 'inline-block';
+                
+                // Scroll to top to see status
+                document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
                 
                 try {
                     let body;
@@ -334,18 +300,18 @@
                     if (!res.ok) throw new Error(data.detail || 'Request failed');
                     
                     if (data.status_url) {
-                        pollStatus(data.status_url, resultDiv);
+                        pollStatus(data.status_url);
                     } else {
-                        resultDiv.textContent = data.message || JSON.stringify(data);
-                        resultDiv.className = 'result success';
-                        resultDiv.style.display = 'block';
+                        statusDiv.textContent = data.message || JSON.stringify(data);
+                        statusDiv.className = 'result success';
+                        statusDiv.style.display = 'block';
                     }
                     
                     form.reset();
                 } catch (e) {
-                    resultDiv.textContent = e.message;
-                    resultDiv.className = 'result error';
-                    resultDiv.style.display = 'block';
+                    statusDiv.textContent = e.message;
+                    statusDiv.className = 'result error';
+                    statusDiv.style.display = 'block';
                 } finally {
                     btn.disabled = false;
                     loader.style.display = 'none';

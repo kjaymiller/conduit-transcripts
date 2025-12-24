@@ -462,3 +462,15 @@ async def root():
         )
 
     return HTMLResponse(content=template_path.read_text(encoding="utf-8"))
+
+
+@app.get("/downloads", response_class=HTMLResponse)
+async def downloads():
+    """Serve the downloads list UI."""
+    template_path = Path(__file__).parent / "templates" / "downloads.html"
+    if not template_path.exists():
+        return HTMLResponse(
+            content="<h1>Error: Template not found</h1>", status_code=500
+        )
+
+    return HTMLResponse(content=template_path.read_text(encoding="utf-8"))
