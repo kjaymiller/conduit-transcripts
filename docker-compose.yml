@@ -20,11 +20,11 @@ services:
     networks:
       - conduit-network
 
-  # Web UI and MCP server for transcript search
+  # Web UI for transcript search
   web:
     build:
       context: .
-      dockerfile: Dockerfile.mcp
+      dockerfile: Dockerfile.web
     container_name: conduit-web
     environment:
       POSTGRES_HOST: postgres
@@ -32,10 +32,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB_NAME:-transcripts}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      MCP_PORT: ${MCP_PORT:-8000}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      API_PORT: 8000
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,17 +43,32 @@ services:
       - ./apps:/app/apps:ro
     networks:
       - conduit-network
-    command:
-      [
-        "uv",
-        "run",
-        "uvicorn",
-        "apps.mcp.server:app",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "8000",
-      ]
+    command: ["uv", "run", "python", "-m", "apps.web.run"]
+
+  # MCP server for LLM integration
+  mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    container_name: conduit-mcp
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB_NAME:-transcripts}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      API_PORT: 8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${MCP_PORT:-8001}:8000"
+    volumes:
+      - ./conduit_transcripts:/app/conduit_transcripts:ro
+      - ./apps:/app/apps:ro
+    networks:
+      - conduit-network
+    command: ["uv", "run", "python", "-m", "apps.mcp.main"]
 
 volumes:
   postgres_data:
