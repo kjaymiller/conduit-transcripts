@@ -2,9 +2,11 @@
 
 import logging
 from typing import List
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from sqlalchemy import text
 
 from conduit_transcripts.config import settings
@@ -91,9 +93,9 @@ app.add_middleware(
 )
 
 
-@app.get("/", response_model=dict)
-async def root():
-    """Root endpoint."""
+@app.get("/api-info", response_model=dict)
+async def api_info():
+    """API Information."""
     return {
         "message": "Conduit Transcript MCP Server",
         "version": "1.0.0",
@@ -106,6 +108,18 @@ async def root():
             "mcp_sse": "/mcp/sse",
         },
     }
+
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    """Serve the search UI."""
+    template_path = Path(__file__).parent / "templates" / "index.html"
+    if not template_path.exists():
+        return HTMLResponse(
+            content="<h1>Error: Template not found</h1>", status_code=500
+        )
+
+    return HTMLResponse(content=template_path.read_text(encoding="utf-8"))
 
 
 @app.get("/health", response_model=HealthResponse)

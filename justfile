@@ -176,11 +176,11 @@ update-deps:
 
 # Start MCP server locally
 mcp-server:
-    uv run python src/mcp_server.py
+    uv run uvicorn apps.mcp.server:app --host 0.0.0.0 --port 8000
 
 # Start MCP server with auto-reload (development mode)
 mcp-server-dev:
-    uv run uvicorn src.mcp_server:app --host 0.0.0.0 --port 8000 --reload
+    uv run uvicorn apps.mcp.server:app --host 0.0.0.0 --port 8000 --reload
 
 # Test MCP server health
 mcp-health:
@@ -228,9 +228,9 @@ docker-logs-service SERVICE:
 docker-restart:
     docker-compose restart
 
-# Run ingestion manually
-docker-ingest:
-    docker-compose run --rm ingestion uv run conduit ingest --pg-only
+# Run ingestion manually (Local CLI)
+ingest:
+    uv run conduit ingest
 
 # Access PostgreSQL shell
 docker-psql:
