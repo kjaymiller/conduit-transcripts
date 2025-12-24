@@ -93,13 +93,13 @@ class HybridTranscriber:
         Args:
             model: Model size (tiny, base, small, medium, large)
             prefer_mlx: If True, try MLX first; if False, use Whisper directly.
-                        If None, defaults to TRANSCRIBE_PREFER_MLX env var (default: True).
+                        If None, defaults to TRANSCRIBE_PREFER_MLX env var (default: False).
         """
         self.model = model
 
         if prefer_mlx is None:
             prefer_mlx = (
-                os.environ.get("TRANSCRIBE_PREFER_MLX", "true").lower() != "false"
+                os.environ.get("TRANSCRIBE_PREFER_MLX", "false").lower() == "true"
             )
 
         self.prefer_mlx = prefer_mlx

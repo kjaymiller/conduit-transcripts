@@ -38,7 +38,7 @@ class Settings:
     # Transcription configuration
     TRANSCRIPTION_MODEL: str = os.getenv("TRANSCRIPTION_MODEL", "base")
     TRANSCRIBE_PREFER_MLX: bool = (
-        os.getenv("TRANSCRIBE_PREFER_MLX", os.getenv("PREFER_MLX", "true")).lower()
+        os.getenv("TRANSCRIBE_PREFER_MLX", os.getenv("PREFER_MLX", "false")).lower()
         == "true"
     )
 
