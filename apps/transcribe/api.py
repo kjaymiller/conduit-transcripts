@@ -14,7 +14,9 @@ import arrow
 import frontmatter
 from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Form
 from fastapi.responses import JSONResponse, HTMLResponse
-from sqlalchemy import text
+from sqlalchemy import text, or_
+from sqlalchemy.types import String
+from sqlalchemy.sql.expression import cast
 
 from conduit_transcripts.config import settings
 from conduit_transcripts.database.postgres import VectorDatabase
@@ -57,7 +59,8 @@ def get_transcriber():
     global _transcriber
     if _transcriber is None:
         _transcriber = HybridTranscriber(
-            model=settings.TRANSCRIPTION_MODEL, prefer_mlx=settings.PREFER_MLX
+            model=settings.TRANSCRIPTION_MODEL,
+            prefer_mlx=settings.TRANSCRIBE_PREFER_MLX,
         )
     return _transcriber
 
@@ -118,13 +121,13 @@ def process_single_file(job_id: str, file_path: Path, filename: str):
     """Process a single file in a background thread."""
     try:
         tracker.update_file_status(job_id, filename, TaskStatus.PROCESSING)
-        
+
         # Read content
         content = file_path.read_text(encoding="utf-8")
-        
+
         # Parse frontmatter
         post = frontmatter.loads(content)
-        
+
         # Extract episode number
         if "episode_number" not in post.metadata:
             episode_match = re.match(r"^\d+", str(post.metadata.get("title", "")))
@@ -133,8 +136,10 @@ def process_single_file(job_id: str, file_path: Path, filename: str):
             episode_number = int(episode_match.group())
         else:
             episode_number = int(str(post.metadata["episode_number"]))
-            
-        tracker.update_file_status(job_id, filename, TaskStatus.PROCESSING, episode_number=episode_number)
+
+        tracker.update_file_status(
+            job_id, filename, TaskStatus.PROCESSING, episode_number=episode_number
+        )
 
         # Process with VectorDatabase
         db = VectorDatabase()
@@ -143,7 +148,9 @@ def process_single_file(job_id: str, file_path: Path, filename: str):
         if success:
             tracker.update_file_status(job_id, filename, TaskStatus.COMPLETED)
         else:
-            tracker.update_file_status(job_id, filename, TaskStatus.FAILED, error="Database processing failed")
+            tracker.update_file_status(
+                job_id, filename, TaskStatus.FAILED, error="Database processing failed"
+            )
 
     except Exception as e:
         logger.error(f"Error processing file {filename}: {e}")
@@ -158,36 +165,40 @@ def process_single_file(job_id: str, file_path: Path, filename: str):
 
 
 @app.post("/ingest/files")
-async def ingest_files(background_tasks: BackgroundTasks, files: list[UploadFile] = File(...)):
+async def ingest_files(
+    background_tasks: BackgroundTasks, files: list[UploadFile] = File(...)
+):
     """
     Ingest multiple transcript markdown files in parallel.
     Returns a job ID to track progress.
     """
     filenames = [f.filename or f"unknown_{uuid.uuid4()}.md" for f in files]
     job_id = tracker.create_job(filenames)
-    
+
     # Save files to disk first so threads can access them
     temp_dir = Path(tempfile.gettempdir()) / "conduit_ingest" / job_id
     temp_dir.mkdir(parents=True, exist_ok=True)
-    
+
     for i, file in enumerate(files):
         filename = filenames[i]
         file_path = temp_dir / filename
         try:
             with file_path.open("wb") as f:
                 shutil.copyfileobj(file.file, f)
-            
+
             # Submit to thread pool
             background_tasks.add_task(process_single_file, job_id, file_path, filename)
         except Exception as e:
-            tracker.update_file_status(job_id, filename, TaskStatus.FAILED, error=f"Upload failed: {str(e)}")
+            tracker.update_file_status(
+                job_id, filename, TaskStatus.FAILED, error=f"Upload failed: {str(e)}"
+            )
 
     return JSONResponse(
         status_code=202,
         content={
             "job_id": job_id,
             "message": f"Started ingestion for {len(files)} files",
-            "status_url": f"/ingest/status/{job_id}"
+            "status_url": f"/ingest/status/{job_id}",
         },
     )
 
@@ -198,7 +209,7 @@ async def get_ingest_status(job_id: str):
     job = tracker.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    
+
     return job.dict()
 
 
@@ -249,7 +260,9 @@ async def transcribe_episode_background(episode_number: int, audio_url: str):
 async def transcribe_file_background(episode_number: int, file_path: Path):
     """Background task to transcribe an uploaded file."""
     try:
-        logger.info(f"Starting transcription for uploaded file, episode {episode_number}")
+        logger.info(
+            f"Starting transcription for uploaded file, episode {episode_number}"
+        )
 
         # Transcribe
         transcriber = get_transcriber()
@@ -259,7 +272,9 @@ async def transcribe_file_background(episode_number: int, file_path: Path):
         post = frontmatter.Post(content=transcription)
         post.metadata["title"] = f"{episode_number} - Uploaded Episode"
         post.metadata["episode_number"] = episode_number
-        post.metadata["description"] = f"Transcription of uploaded episode {episode_number}"
+        post.metadata["description"] = (
+            f"Transcription of uploaded episode {episode_number}"
+        )
         post.metadata["url"] = "uploaded-file"
         post.metadata["pub_date"] = arrow.now().format(ARROW_FMT)
 
@@ -275,7 +290,9 @@ async def transcribe_file_background(episode_number: int, file_path: Path):
                 f"Successfully transcribed and ingested uploaded episode {episode_number}"
             )
         else:
-            logger.error(f"Failed to ingest transcription for uploaded episode {episode_number}")
+            logger.error(
+                f"Failed to ingest transcription for uploaded episode {episode_number}"
+            )
 
     except Exception as e:
         logger.error(f"Error in background file transcription: {e}")
@@ -324,16 +341,17 @@ async def transcribe_episode(
                 transcribe_episode_background, episode_number, audio_url
             )
         elif audio_url and not episode_number:
-             # Case where only URL is provided - user should ideally provide episode number
-             # but we can try to extract or fail gracefully or handle it.
-             # For now, let's require episode number if using internal logic, or just fail if not found.
-             # Actually, the logic above sets episode_number to None if not provided.
-             # If we have audio_url but no episode_number, transcribe_episode_background expects int.
-             # We might need to generate one or update existing logic.
-             # For simplicity, if episode_number is missing, we can't ingest properly with current DB model.
-             # We could parse URL for number.
-             raise HTTPException(status_code=400, detail="Episode number is required for ingestion.")
-
+            # Case where only URL is provided - user should ideally provide episode number
+            # but we can try to extract or fail gracefully or handle it.
+            # For now, let's require episode number if using internal logic, or just fail if not found.
+            # Actually, the logic above sets episode_number to None if not provided.
+            # If we have audio_url but no episode_number, transcribe_episode_background expects int.
+            # We might need to generate one or update existing logic.
+            # For simplicity, if episode_number is missing, we can't ingest properly with current DB model.
+            # We could parse URL for number.
+            raise HTTPException(
+                status_code=400, detail="Episode number is required for ingestion."
+            )
 
         return TranscribeResponse(
             status="accepted",
@@ -366,9 +384,7 @@ async def transcribe_uploaded_file(
             shutil.copyfileobj(file.file, tmp)
             tmp_path = Path(tmp.name)
 
-        background_tasks.add_task(
-            transcribe_file_background, episode_number, tmp_path
-        )
+        background_tasks.add_task(transcribe_file_background, episode_number, tmp_path)
 
         return TranscribeResponse(
             status="accepted",
@@ -384,42 +400,57 @@ async def transcribe_uploaded_file(
 
 
 @app.get("/transcripts")
-async def list_transcripts(limit: int = 100, offset: int = 0):
+async def list_transcripts(limit: int = 100, offset: int = 0, q: Optional[str] = None):
     """List all ingested transcripts."""
     try:
         db = VectorDatabase()
         session = db.Session()
-        
+
+        query = session.query(Transcript).filter(Transcript.podcast == "Conduit")
+
+        if q:
+            # Search in title or content within the JSONB meta field
+            search_term = f"%{q}%"
+            query = query.filter(
+                or_(
+                    cast(Transcript.meta["title"], String).ilike(search_term),
+                    cast(Transcript.meta["content"], String).ilike(search_term),
+                    cast(Transcript.episode_number, String).ilike(search_term),
+                )
+            )
+
         # Query transcripts sorted by episode number descending
         transcripts = (
-            session.query(Transcript)
-            .filter(Transcript.podcast == "Conduit")
-            .order_by(Transcript.episode_number.desc())
+            query.order_by(Transcript.episode_number.desc())
             .offset(offset)
             .limit(limit)
             .all()
         )
-        
+
         result = []
         for t in transcripts:
             chunks_count = len(t.chunks)
             title = t.meta.get("title", f"Episode {t.episode_number}")
             pub_date = t.meta.get("pub_date", "")
-            
-            result.append({
-                "episode_number": t.episode_number,
-                "title": title,
-                "pub_date": pub_date,
-                "chunks_count": chunks_count,
-                "created_at": t.created_at.isoformat() if t.created_at else None
-            })
-            
+
+            result.append(
+                {
+                    "episode_number": t.episode_number,
+                    "title": title,
+                    "pub_date": pub_date,
+                    "chunks_count": chunks_count,
+                    "created_at": t.created_at.isoformat() if t.created_at else None,
+                }
+            )
+
         session.close()
         return {"transcripts": result, "count": len(result)}
-        
+
     except Exception as e:
         logger.error(f"Error listing transcripts: {e}")
-        raise HTTPException(status_code=500, detail=f"Error listing transcripts: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error listing transcripts: {str(e)}"
+        )
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -427,6 +458,8 @@ async def root():
     """Serve the ingestion UI."""
     template_path = Path(__file__).parent / "templates" / "index.html"
     if not template_path.exists():
-         return HTMLResponse(content="<h1>Error: Template not found</h1>", status_code=500)
-    
+        return HTMLResponse(
+            content="<h1>Error: Template not found</h1>", status_code=500
+        )
+
     return HTMLResponse(content=template_path.read_text(encoding="utf-8"))

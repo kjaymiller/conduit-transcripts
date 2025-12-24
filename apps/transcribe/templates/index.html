@@ -174,7 +174,11 @@
 
     <div class="card">
         <h2>Ingested Transcripts</h2>
-        <button id="refreshTranscripts" style="margin-bottom: 1rem; padding: 0.5rem;">Refresh List</button>
+        <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem;">
+            <input type="text" id="transcriptSearch" placeholder="Search transcripts..." style="flex-grow: 1;">
+            <button id="searchBtn">Search</button>
+            <button id="refreshTranscripts" style="padding: 0.5rem;">Refresh</button>
+        </div>
         <div id="transcriptList">Loading...</div>
     </div>
 
@@ -224,8 +228,16 @@
 
         async function loadTranscripts() {
             const listDiv = document.getElementById('transcriptList');
+            const searchInput = document.getElementById('transcriptSearch');
+            const query = searchInput ? searchInput.value.trim() : '';
+            
             try {
-                const res = await fetch('/transcripts?limit=20');
+                let url = '/transcripts?limit=20';
+                if (query) {
+                    url += `&q=${encodeURIComponent(query)}`;
+                }
+                
+                const res = await fetch(url);
                 const data = await res.json();
                 
                 if (data.transcripts && data.transcripts.length > 0) {
@@ -256,6 +268,12 @@
         }
 
         document.getElementById('refreshTranscripts').addEventListener('click', loadTranscripts);
+        document.getElementById('searchBtn').addEventListener('click', loadTranscripts);
+        document.getElementById('transcriptSearch').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                loadTranscripts();
+            }
+        });
         
         // Initial load
         loadTranscripts();

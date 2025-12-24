@@ -33,7 +33,7 @@ class Settings:
 
     # Transcription configuration
     TRANSCRIPTION_MODEL: str = os.getenv("TRANSCRIPTION_MODEL", "base")
-    PREFER_MLX: bool = os.getenv("PREFER_MLX", "true").lower() == "true"
+    PREFER_MLX: bool = os.getenv("TRANSCRIBE_PREFER_MLX", os.getenv("PREFER_MLX", "true")).lower() == "true"
 
     # Embedding configuration
     EMBEDDING_PROVIDER: str = os.getenv("EMBEDDING_PROVIDER", "ollama")  # ollama or huggingface
