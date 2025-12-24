@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "conduit-transcriptions": {
+      "type": "remote",
+      "url": "http://localhost:8000",
+      "enabled": true
+    }
+  }
+}

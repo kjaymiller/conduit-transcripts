@@ -183,12 +183,12 @@ curl "http://localhost:8000/episodes?limit=20&offset=0"
 
 3. **Run the server:**
    ```bash
-   uv run python src/mcp_server.py
+   uv run python apps/mcp/main.py
    ```
 
    Or with uvicorn directly:
    ```bash
-   uv run uvicorn src.mcp_server:app --host 0.0.0.0 --port 8000 --reload
+   uv run uvicorn apps.mcp.server:app --host 0.0.0.0 --port 8000 --reload
    ```
 
 4. **Access the API:**
@@ -339,6 +339,34 @@ just lint-fix
 - **Database Setup**: conduit-transcripts-h6e
 - **Ingestion Pipeline**: conduit-transcripts-0mt
 - **Docker Infrastructure**: conduit-transcripts-1h3
+
+## Integration with OpenCode
+
+This project includes an `opencode.json` configuration file to easily connect OpenCode to the MCP server.
+
+To use the MCP server with OpenCode:
+
+1. **Ensure the server is running**:
+   - Docker: `just docker-up` (runs on port 8000)
+   - Local: `uv run python apps/mcp/main.py` (runs on port 8000)
+
+2. **Verify configuration**:
+   The `opencode.json` file in the root directory should verify the server URL:
+
+   ```json
+   {
+     "mcp": {
+       "conduit-transcriptions": {
+         "type": "remote",
+         "url": "http://localhost:8000",
+         "enabled": true
+       }
+     }
+   }
+   ```
+
+3. **Restart OpenCode**:
+   After starting the server, restart OpenCode or reload the configuration to establish the connection.
 
 ## License
 
