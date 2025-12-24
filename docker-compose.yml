@@ -41,6 +41,7 @@ services:
     volumes:
       - ./conduit_transcripts:/app/conduit_transcripts:ro
       - ./apps:/app/apps:ro
+      - ./transcripts:/app/transcripts
     networks:
       - conduit-network
     command: ["uv", "run", "python", "-m", "apps.web.run"]
@@ -66,6 +67,7 @@ services:
     volumes:
       - ./conduit_transcripts:/app/conduit_transcripts:ro
       - ./apps:/app/apps:ro
+      - ./transcripts:/app/transcripts
     networks:
       - conduit-network
     command: ["uv", "run", "python", "-m", "apps.mcp.main"]
