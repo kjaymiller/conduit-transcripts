@@ -61,6 +61,46 @@ class VectorDatabase:
                 encode_kwargs={"normalize_embeddings": False},
             )
 
+    def create_sentence_chunks(self, text: str, window_size: int = 2, overlap: int = 1) -> list[str]:
+        """Split text into overlapping chunks of sentences.
+        
+        Args:
+            text: The text content to split.
+            window_size: Number of sentences per chunk.
+            overlap: Number of overlapping sentences between chunks.
+            
+        Returns:
+            List of text chunks.
+        """
+        # Split into sentences using simple regex for .!? followed by whitespace
+        # This is a basic implementation; for production, consider NLTK or Spacy
+        sentences = re.split(r'(?<=[.!?])\s+', text)
+        sentences = [s.strip() for s in sentences if s.strip()]
+        
+        if not sentences:
+            return []
+            
+        chunks = []
+        if len(sentences) <= window_size:
+            chunks.append(" ".join(sentences))
+            return chunks
+            
+        step = window_size - overlap
+        for i in range(0, len(sentences), step):
+            chunk_sentences = sentences[i : i + window_size]
+            if not chunk_sentences:
+                break
+            # If the last chunk is too small (just the overlap), skip it unless it's unique
+            if len(chunk_sentences) < window_size and len(chunks) > 0:
+                 # Check if this content is already in the previous chunk (fully contained)
+                 # With step=1, window=2, this handles standard cases.
+                 # Just adding it is fine, or we could merge with previous if really small.
+                 pass
+                 
+            chunks.append(" ".join(chunk_sentences))
+            
+        return chunks
+
     def process_frontmatter_post(self, post: frontmatter.Post) -> bool:
         """Process a frontmatter post and save to database.
         
@@ -108,12 +148,12 @@ class VectorDatabase:
                 episode_number=episode_number, podcast=podcast
             ).delete()
 
-            # Create chunks and embeddings
-            chunks = self.text_splitter.create_documents([metadata["content"]])
-            if not chunks:
+            # Create chunks and embeddings using overlapping sentence window
+            texts = self.create_sentence_chunks(metadata["content"], window_size=2, overlap=1)
+            
+            if not texts:
                 logger.warning(f"No content to chunk for episode {episode_number}")
                 
-            texts = [chunk.page_content for chunk in chunks]
             if texts:
                 embeddings = self.embedding_model.embed_documents(texts)
 
@@ -130,7 +170,7 @@ class VectorDatabase:
             # Commit changes
             session.commit()
             logger.info(
-                f"Processed transcript {episode_number} with {len(chunks)} chunks"
+                f"Processed transcript {episode_number} with {len(texts)} chunks"
             )
             return True
 
