@@ -44,56 +44,52 @@ def mock_embedding_model():
 
 def test_root_endpoint(mock_engine, mock_embedding_model):
     """Test root endpoint returns server info"""
-    with patch('mcp_server.engine', mock_engine):
-        with patch('mcp_server.embedding_model', mock_embedding_model):
-            from mcp_server import app
-            client = TestClient(app)
-            response = client.get("/")
+    # No need to patch db for root
+    from apps.mcp.server import app
+    client = TestClient(app)
+    response = client.get("/")
 
-            assert response.status_code == 200
-            data = response.json()
-            assert "message" in data
-            assert "version" in data
-            assert "endpoints" in data
+    assert response.status_code == 200
+    data = response.json()
+    assert "message" in data
+    assert "version" in data
+    assert "endpoints" in data
 
 
 def test_health_endpoint(mock_engine, mock_embedding_model):
     """Test health check endpoint"""
-    with patch('mcp_server.engine', mock_engine):
-        with patch('mcp_server.embedding_model', mock_embedding_model):
-            from mcp_server import app
-            client = TestClient(app)
-            response = client.get("/health")
+    # Patch VectorDatabase in server module (for health check)
+    with patch('apps.mcp.server.VectorDatabase') as MockDB:
+        MockDB.return_value.engine.connect.return_value.__enter__.return_value.execute.return_value = None
+        from apps.mcp.server import app
+        client = TestClient(app)
+        response = client.get("/health")
 
-            assert response.status_code == 200
-            data = response.json()
-            assert data["status"] == "healthy"
-            assert data["database"] == "connected"
-            assert "embedding_model" in data
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "healthy"
+        assert data["database"] == "connected"
+        assert "embedding_model" in data
 
 
 def test_vector_search_validation(mock_engine, mock_embedding_model):
     """Test vector search requires query parameter"""
-    with patch('mcp_server.engine', mock_engine):
-        with patch('mcp_server.embedding_model', mock_embedding_model):
-            from mcp_server import app
-            client = TestClient(app)
+    from apps.mcp.server import app
+    client = TestClient(app)
 
-            # Missing query parameter
-            response = client.get("/search/vector")
-            assert response.status_code == 422  # Unprocessable Entity
+    # Missing query parameter
+    response = client.get("/search/vector")
+    assert response.status_code == 422  # Unprocessable Entity
 
 
 def test_text_search_validation(mock_engine, mock_embedding_model):
     """Test text search requires query parameter"""
-    with patch('mcp_server.engine', mock_engine):
-        with patch('mcp_server.embedding_model', mock_embedding_model):
-            from mcp_server import app
-            client = TestClient(app)
+    from apps.mcp.server import app
+    client = TestClient(app)
 
-            # Missing query parameter
-            response = client.get("/search/text")
-            assert response.status_code == 422  # Unprocessable Entity
+    # Missing query parameter
+    response = client.get("/search/text")
+    assert response.status_code == 422  # Unprocessable Entity
 
 
 if __name__ == "__main__":

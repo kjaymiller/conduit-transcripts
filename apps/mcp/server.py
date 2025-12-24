@@ -5,53 +5,22 @@ from typing import List
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import select, text
-from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from conduit_transcripts.config import settings
 from conduit_transcripts.database.postgres import VectorDatabase
 from conduit_transcripts.models import Transcript, VectorChunk
 from apps.mcp.models import (
-    SearchResult,
     SearchResponse,
-    SummaryRequest,
-    SummaryResponse,
     HealthResponse,
 )
+from apps.mcp import actions
+
+# Import FastMCP
+from mcp.server import FastMCP
 
 # Configure logging
 logger = logging.getLogger(__name__)
-
-# Global variables for database and embeddings
-db = None
-embedding_model = None
-
-
-def get_db() -> Session:
-    """Get database session."""
-    global db
-    if db is None:
-        db = VectorDatabase()
-    session = db.Session()
-    try:
-        return session
-    finally:
-        session.close()
-
-
-def get_embedding_model():
-    """Get embedding model."""
-    global embedding_model
-    if embedding_model is None:
-        from langchain_huggingface import HuggingFaceEmbeddings
-
-        embedding_model = HuggingFaceEmbeddings(
-            model_name=settings.EMBEDDING_MODEL,
-            model_kwargs={"device": settings.EMBEDDING_DEVICE},
-            encode_kwargs={"normalize_embeddings": False},
-        )
-    return embedding_model
-
 
 # Create FastAPI app
 app = FastAPI(
@@ -59,6 +28,58 @@ app = FastAPI(
     description="MCP server for searching and summarizing podcast transcripts",
     version="1.0.0",
 )
+
+# Create MCP Server
+# Dependencies: "mcp" package
+mcp = FastMCP("Conduit Transcripts")
+
+
+@mcp.tool()
+def search_transcripts(
+    query: str, limit: int = 10, similarity_threshold: float = 0.0
+) -> str:
+    """
+    Search transcripts using vector similarity.
+    Returns formatted results suitable for LLM context.
+    """
+    results = actions.vector_search(query, limit, similarity_threshold)
+    
+    if not results:
+        return "No matching transcripts found."
+        
+    output = [f"Found {len(results)} results for '{query}':\n"]
+    for r in results:
+        output.append(f"Episode {r.episode_number}: {r.title}")
+        output.append(f"URL: {r.url}")
+        output.append(f"Content: {r.content_snippet}")
+        output.append(f"Similarity: {r.similarity_score}")
+        output.append("---")
+    
+    return "\n".join(output)
+
+
+@mcp.tool()
+def get_episode_transcript(episode_number: int, podcast: str = "Conduit") -> str:
+    """Get full transcript for a specific episode."""
+    result = actions.get_episode_details(episode_number, podcast)
+    if not result:
+        return f"Episode {episode_number} not found."
+    
+    metadata = result['metadata']
+    return (
+        f"Title: {metadata.get('title')}\n"
+        f"Date: {metadata.get('pub_date')}\n"
+        f"URL: {metadata.get('url')}\n"
+        f"Content:\n{result['content']}"
+    )
+
+
+# Mount MCP SSE app
+# The MCP SSE transport will be available at /mcp/sse and /mcp/messages
+try:
+    app.mount("/mcp", mcp.sse_app())
+except Exception as e:
+    logger.error(f"Failed to mount MCP app: {e}")
 
 # Add CORS middleware
 app.add_middleware(
@@ -82,6 +103,7 @@ async def root():
             "text_search": "/search/text",
             "episode": "/episode/{episode_number}",
             "list_episodes": "/episodes",
+            "mcp_sse": "/mcp/sse",
         },
     }
 
@@ -115,81 +137,15 @@ async def vector_search(
 ):
     """
     Search transcripts using vector similarity.
-
-    This endpoint converts the query to an embedding and finds the most similar
-    transcript chunks using cosine similarity.
     """
     try:
-        logger.info(f"Vector search query: '{query}' (limit={limit})")
-
-        # Generate embedding for query
-        embedding_model = get_embedding_model()
-        query_embedding = embedding_model.embed_query(query)
-
-        # Create database session
-        vector_db = VectorDatabase()
-        session = vector_db.Session()
-
-        try:
-            # Perform vector similarity search using L2 distance
-            results = session.execute(
-                select(
-                    VectorChunk,
-                    VectorChunk.embedding.l2_distance(query_embedding).label(
-                        "distance"
-                    ),
-                )
-                .order_by(VectorChunk.embedding.l2_distance(query_embedding))
-                .limit(limit)
-            ).all()
-
-            # Convert results to SearchResult objects
-            search_results = []
-            for chunk, distance in results:
-                # Get transcript metadata
-                transcript = (
-                    session.query(Transcript)
-                    .filter(
-                        Transcript.podcast == chunk.podcast,
-                        Transcript.episode_number == chunk.episode_number,
-                    )
-                    .first()
-                )
-
-                meta = transcript.meta if transcript else {}
-
-                # Convert L2 distance to similarity score (inverse relationship)
-                similarity_score = (
-                    1.0 / (1.0 + distance) if distance is not None else 0.0
-                )
-
-                if similarity_score >= similarity_threshold:
-                    search_results.append(
-                        SearchResult(
-                            episode_number=chunk.episode_number,
-                            podcast=chunk.podcast,
-                            title=meta.get("title"),
-                            description=meta.get("description"),
-                            url=meta.get("url"),
-                            pub_date=meta.get("pub_date"),
-                            content_snippet=chunk.content[:500],  # Limit snippet size
-                            similarity_score=round(similarity_score, 4),
-                            chunk_id=chunk.id,
-                        )
-                    )
-
-            logger.info(f"Found {len(search_results)} results")
-
-            return SearchResponse(
-                query=query,
-                results=search_results,
-                total_results=len(search_results),
-                search_type="vector_similarity",
-            )
-
-        finally:
-            session.close()
-
+        results = actions.vector_search(query, limit, similarity_threshold)
+        return SearchResponse(
+            query=query,
+            results=results,
+            total_results=len(results),
+            search_type="vector_similarity",
+        )
     except Exception as e:
         logger.error(f"Vector search error: {e}")
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
@@ -202,65 +158,15 @@ async def text_search(
 ):
     """
     Search transcripts using text matching.
-
-    This endpoint performs case-insensitive text search across transcript content.
     """
     try:
-        logger.info(f"Text search query: '{query}' (limit={limit})")
-
-        vector_db = VectorDatabase()
-        session = vector_db.Session()
-
-        try:
-            # Perform text search using ILIKE for case-insensitive matching
-            results = (
-                session.query(VectorChunk)
-                .filter(VectorChunk.content.ilike(f"%{query}%"))
-                .limit(limit)
-                .all()
-            )
-
-            # Convert results to SearchResult objects
-            search_results = []
-            for chunk in results:
-                # Get transcript metadata
-                transcript = (
-                    session.query(Transcript)
-                    .filter(
-                        Transcript.podcast == chunk.podcast,
-                        Transcript.episode_number == chunk.episode_number,
-                    )
-                    .first()
-                )
-
-                meta = transcript.meta if transcript else {}
-
-                search_results.append(
-                    SearchResult(
-                        episode_number=chunk.episode_number,
-                        podcast=chunk.podcast,
-                        title=meta.get("title"),
-                        description=meta.get("description"),
-                        url=meta.get("url"),
-                        pub_date=meta.get("pub_date"),
-                        content_snippet=chunk.content[:500],
-                        similarity_score=None,
-                        chunk_id=chunk.id,
-                    )
-                )
-
-            logger.info(f"Found {len(search_results)} results")
-
-            return SearchResponse(
-                query=query,
-                results=search_results,
-                total_results=len(search_results),
-                search_type="text_match",
-            )
-
-        finally:
-            session.close()
-
+        results = actions.text_search(query, limit)
+        return SearchResponse(
+            query=query,
+            results=results,
+            total_results=len(results),
+            search_type="text_match",
+        )
     except Exception as e:
         logger.error(f"Text search error: {e}")
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
@@ -272,49 +178,12 @@ async def get_episode(
 ):
     """Get full transcript for a specific episode."""
     try:
-        logger.info(f"Getting episode {episode_number} from {podcast}")
-
-        vector_db = VectorDatabase()
-        session = vector_db.Session()
-
-        try:
-            # Get transcript
-            transcript = (
-                session.query(Transcript)
-                .filter(
-                    Transcript.podcast == podcast,
-                    Transcript.episode_number == episode_number,
-                )
-                .first()
+        result = actions.get_episode_details(episode_number, podcast)
+        if not result:
+            raise HTTPException(
+                status_code=404, detail=f"Episode {episode_number} not found"
             )
-
-            if not transcript:
-                raise HTTPException(
-                    status_code=404, detail=f"Episode {episode_number} not found"
-                )
-
-            # Get all chunks for this episode
-            chunks = (
-                session.query(VectorChunk)
-                .filter(
-                    VectorChunk.podcast == podcast,
-                    VectorChunk.episode_number == episode_number,
-                )
-                .order_by(VectorChunk.id)
-                .all()
-            )
-
-            return {
-                "episode_number": episode_number,
-                "podcast": podcast,
-                "metadata": transcript.meta,
-                "content": transcript.meta.get("content", ""),
-                "chunks_count": len(chunks),
-            }
-
-        finally:
-            session.close()
-
+        return result
     except HTTPException:
         raise
     except Exception as e:

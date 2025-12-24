@@ -3,7 +3,7 @@
   "mcp": {
     "conduit-transcriptions": {
       "type": "remote",
-      "url": "http://localhost:8000",
+      "url": "http://localhost:8000/mcp/sse",
       "enabled": true
     }
   }

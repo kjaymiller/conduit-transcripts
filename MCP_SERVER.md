@@ -28,6 +28,12 @@ A FastAPI-based MCP (Model Context Protocol) server for searching and retrieving
 }
 ```
 
+### MCP SSE Transport
+**GET /mcp/sse** - Server-Sent Events endpoint for MCP protocol
+**POST /mcp/messages** - Message endpoint for MCP protocol
+
+This endpoint allows MCP clients (like Claude Desktop or OpenCode) to connect using the Model Context Protocol over SSE.
+
 ### Vector Search
 **GET /search/vector** - Semantic search using vector embeddings
 

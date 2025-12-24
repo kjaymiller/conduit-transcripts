@@ -29,6 +29,7 @@ dependencies = [
   "alembic>=1.13.0",
   "sentence-transformers>=5.2.0",
   "langchain-ollama>=1.0.1",
+  "mcp>=1.25.0",
 ]
 
 # Optional ML dependencies
