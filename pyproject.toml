@@ -48,7 +48,7 @@ dev = [
 
 [project.scripts]
 conduit = "cli.main:app"
-conduit-transcribe = "apps.transcribe.main:main"
+conduit-web = "apps.web.run:main"
 conduit-mcp = "apps.mcp.main:main"
 
 [project.urls]

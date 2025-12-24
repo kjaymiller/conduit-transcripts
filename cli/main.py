@@ -231,6 +231,37 @@ def transcribe(
         raise typer.Exit(1)
 
 
+@app.command(name="transcribe-file")
+def transcribe_file(
+    file_path: pathlib.Path = typer.Argument(..., help="Path to audio file", exists=True),
+    model: str = typer.Option("base", "--model", "-m", help="Model size"),
+    prefer_mlx: bool = typer.Option(
+        False,
+        "--prefer-mlx/--no-mlx",
+        help="Prefer MLX",
+        envvar="TRANSCRIBE_PREFER_MLX",
+    ),
+    output: pathlib.Path = typer.Option(None, "--output", "-o", help="Output file path"),
+):
+    """Transcribe a local audio file."""
+    try:
+        console.print(f"[blue]Transcribing {file_path} with {model} model...[/blue]")
+        transcriber = HybridTranscriber(model=model, prefer_mlx=prefer_mlx)
+        transcription = transcriber.transcribe(file_path)
+
+        if output:
+            output_file = output
+        else:
+            output_file = file_path.with_suffix(".txt")
+
+        output_file.write_text(transcription)
+        console.print(f"[green]Transcription saved to: {output_file}[/green]")
+
+    except Exception as e:
+        console.print(f"[red]Error transcribing file: {e}[/red]")
+        raise typer.Exit(1)
+
+
 @app.command()
 def ingest(
     files: typing.Optional[typing.List[pathlib.Path]] = typer.Option(
