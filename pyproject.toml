@@ -37,7 +37,6 @@ dependencies = [
 [project.optional-dependencies]
 opensearch = ["opensearch-py>=2.0.0"]
 mlx = ["mlx-whisper>=0.4.3"]
-whisper = ["openai-whisper>=20230314"]
 
 # Development dependencies
 dev = [

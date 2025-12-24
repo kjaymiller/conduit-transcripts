@@ -20,6 +20,9 @@ COPY cli/ ./cli/
 RUN pip install uv
 RUN uv sync --frozen
 
+# Verify installation of critical dependencies
+RUN uv run python -c "import whisper; print('Whisper installed successfully')" || (echo "Failed to import whisper" && exit 1)
+
 # Create non-root user
 RUN useradd -m -u 1000 appuser
 RUN chown -R appuser:appuser /app
