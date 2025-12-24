@@ -1,6 +1,7 @@
 """Transcription abstraction layer with MLX support and Whisper fallback."""
 
 import logging
+import os
 import pathlib
 import typing
 import warnings
@@ -84,14 +85,23 @@ class WhisperTranscriber(TranscriptionBackend):
 class HybridTranscriber:
     """Transcriber that tries MLX first, falls back to Whisper."""
 
-    def __init__(self, model: str = "base", prefer_mlx: bool = True):
+    def __init__(
+        self, model: str = "base", prefer_mlx: typing.Optional[bool] = None
+    ):
         """Initialize hybrid transcriber.
 
         Args:
             model: Model size (tiny, base, small, medium, large)
-            prefer_mlx: If True, try MLX first; if False, use Whisper directly
+            prefer_mlx: If True, try MLX first; if False, use Whisper directly.
+                        If None, defaults to TRANSCRIBE_PREFER_MLX env var (default: True).
         """
         self.model = model
+
+        if prefer_mlx is None:
+            prefer_mlx = (
+                os.environ.get("TRANSCRIBE_PREFER_MLX", "true").lower() != "false"
+            )
+
         self.prefer_mlx = prefer_mlx
         self._primary_transcriber: typing.Optional[TranscriptionBackend] = None
         self._fallback_transcriber: typing.Optional[TranscriptionBackend] = None

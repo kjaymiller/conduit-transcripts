@@ -146,7 +146,12 @@ def status(
 def transcribe(
     episode_number: int = typer.Argument(..., help="Episode number to transcribe"),
     model: str = typer.Option("base", "--model", "-m", help="Model size"),
-    prefer_mlx: bool = typer.Option(True, "--prefer-mlx/--no-mlx", help="Prefer MLX"),
+    prefer_mlx: bool = typer.Option(
+        True,
+        "--prefer-mlx/--no-mlx",
+        help="Prefer MLX",
+        envvar="TRANSCRIBE_PREFER_MLX",
+    ),
     ingest: bool = typer.Option(
         True, "--ingest/--no-ingest", help="Ingest after transcription"
     ),
