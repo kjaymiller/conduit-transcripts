@@ -1,10 +1,11 @@
 """SQLAlchemy models for transcript data."""
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Column, ForeignKeyConstraint, Integer, Text, UniqueConstraint
+from sqlalchemy import Column, ForeignKeyConstraint, Integer, Text, UniqueConstraint, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import declarative_base, mapped_column, relationship
 from sqlalchemy.schema import PrimaryKeyConstraint
+from sqlalchemy.sql import func
 
 from conduit_transcripts.config import settings
 
@@ -19,6 +20,8 @@ class Transcript(Base):
     podcast = Column(Text, primary_key=True)
     episode_number = Column(Integer, primary_key=True)
     meta = Column(JSONB)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # Define composite primary key
     __table_args__ = (PrimaryKeyConstraint("podcast", "episode_number"),)
