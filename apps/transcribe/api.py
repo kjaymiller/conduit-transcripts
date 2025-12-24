@@ -29,7 +29,6 @@ from apps.transcribe.models import (
     TranscribeResponse,
     HealthResponse,
     StatusResponse,
-    IngestResponse,
 )
 from conduit_transcripts.utils.tracker import tracker, TaskStatus
 

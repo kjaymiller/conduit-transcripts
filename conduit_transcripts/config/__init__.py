@@ -19,8 +19,12 @@ class Settings:
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "transcripts")
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")
-    POSTGRES_TABLE_TRANSCRIPTS: str = os.getenv("POSTGRES_TABLE_TRANSCRIPTS", "transcripts")
-    POSTGRES_TABLE_VECTORS: str = os.getenv("POSTGRES_TABLE_VECTORS", "transcript_vector")
+    POSTGRES_TABLE_TRANSCRIPTS: str = os.getenv(
+        "POSTGRES_TABLE_TRANSCRIPTS", "transcripts"
+    )
+    POSTGRES_TABLE_VECTORS: str = os.getenv(
+        "POSTGRES_TABLE_VECTORS", "transcript_vector"
+    )
 
     # OpenSearch configuration
     OPENSEARCH_HOST: str = os.getenv("OPENSEARCH_HOST", "localhost")
@@ -33,15 +37,18 @@ class Settings:
 
     # Transcription configuration
     TRANSCRIPTION_MODEL: str = os.getenv("TRANSCRIPTION_MODEL", "base")
-    PREFER_MLX: bool = os.getenv("TRANSCRIBE_PREFER_MLX", os.getenv("PREFER_MLX", "true")).lower() == "true"
+    TRANSCRIBE_PREFER_MLX: bool = (
+        os.getenv("TRANSCRIBE_PREFER_MLX", os.getenv("PREFER_MLX", "true")).lower()
+        == "true"
+    )
 
     # Embedding configuration
-    EMBEDDING_PROVIDER: str = os.getenv("EMBEDDING_PROVIDER", "ollama")  # ollama or huggingface
-    EMBEDDING_MODEL: str = os.getenv(
-        "EMBEDDING_MODEL", "nomic-embed-text"
-    )
+    EMBEDDING_PROVIDER: str = os.getenv(
+        "EMBEDDING_PROVIDER", "ollama"
+    )  # ollama or huggingface
+    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
     EMBEDDING_DEVICE: str = os.getenv("EMBEDDING_DEVICE", "cpu")
-    
+
     # Ollama configuration
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
 
@@ -62,7 +69,7 @@ class Settings:
             if uri.startswith("postgresql://"):
                 return uri.replace("postgresql://", "postgresql+psycopg://", 1)
             return uri
-            
+
         return f"postgresql+psycopg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     @property
