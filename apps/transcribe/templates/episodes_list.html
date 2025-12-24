@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Episodes - Conduit Transcripts</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--primary);
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+        }
+        nav {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+        }
+        nav a {
+            text-decoration: none;
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+        nav a:hover, nav a.active {
+            background-color: #e0f2fe;
+            color: var(--primary);
+        }
+        .episode-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .episode-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .episode-item:last-child {
+            border-bottom: none;
+        }
+        .episode-info {
+            flex: 1;
+        }
+        .episode-number {
+            font-weight: bold;
+            color: var(--primary);
+            margin-right: 0.5rem;
+        }
+        .episode-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+        .episode-date {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+        .episode-link {
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--primary);
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .episode-link:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Conduit Transcripts</h1>
+
+    <nav>
+        <a href="/">Ingestion & Status</a>
+        <a href="/downloads">Downloaded Transcripts</a>
+        <a href="/episodes" class="active">Episodes</a>
+    </nav>
+
+    <div class="card">
+        <h2>All Episodes</h2>
+        <div id="loading">Loading episodes...</div>
+        <ul id="episodeList" class="episode-list"></ul>
+    </div>
+
+    <script>
+        async function loadEpisodes() {
+            try {
+                const response = await fetch('/transcripts?limit=1000');
+                const data = await response.json();
+                
+                const list = document.getElementById('episodeList');
+                const loading = document.getElementById('loading');
+                
+                loading.style.display = 'none';
+                
+                data.transcripts.forEach(ep => {
+                    const li = document.createElement('li');
+                    li.className = 'episode-item';
+                    
+                    const date = ep.pub_date ? new Date(ep.pub_date).toLocaleDateString() : 'Unknown date';
+                    
+                    li.innerHTML = `
+                        <div class="episode-info">
+                            <div>
+                                <span class="episode-number">#${ep.episode_number}</span>
+                                <span class="episode-title">${ep.title}</span>
+                            </div>
+                            <div class="episode-date">${date} • ${ep.chunks_count} chunks</div>
+                        </div>
+                        <a href="/episodes/${ep.episode_number}" class="episode-link">View</a>
+                    `;
+                    
+                    list.appendChild(li);
+                });
+                
+                if (data.transcripts.length === 0) {
+                    list.innerHTML = '<li class="episode-item">No episodes found.</li>';
+                }
+            } catch (e) {
+                document.getElementById('loading').innerHTML = `Error loading episodes: ${e.message}`;
+                document.getElementById('loading').style.color = 'red';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadEpisodes);
+    </script>
+</body>
+</html>

@@ -474,3 +474,73 @@ async def downloads():
         )
 
     return HTMLResponse(content=template_path.read_text(encoding="utf-8"))
+
+
+@app.get("/episodes", response_class=HTMLResponse)
+async def episodes_list():
+    """Serve the episodes list UI."""
+    template_path = Path(__file__).parent / "templates" / "episodes_list.html"
+    if not template_path.exists():
+        return HTMLResponse(
+            content="<h1>Error: Template not found</h1>", status_code=500
+        )
+
+    return HTMLResponse(content=template_path.read_text(encoding="utf-8"))
+
+
+@app.get("/episodes/{episode_number}", response_class=HTMLResponse)
+async def episode_detail(episode_number: int):
+    """Serve the episode detail UI."""
+    template_path = Path(__file__).parent / "templates" / "episode_detail.html"
+    if not template_path.exists():
+        return HTMLResponse(
+            content="<h1>Error: Template not found</h1>", status_code=500
+        )
+
+    return HTMLResponse(content=template_path.read_text(encoding="utf-8"))
+
+
+@app.get("/transcripts/{episode_number}")
+async def get_transcript_detail(episode_number: int):
+    """Get full transcript detail for an episode."""
+    try:
+        db = VectorDatabase()
+        session = db.Session()
+
+        transcript = (
+            session.query(Transcript)
+            .filter(
+                Transcript.episode_number == episode_number,
+                Transcript.podcast == "Conduit",
+            )
+            .first()
+        )
+
+        if not transcript:
+            session.close()
+            raise HTTPException(status_code=404, detail="Transcript not found")
+
+        chunks_count = len(transcript.chunks)
+        title = transcript.meta.get("title", f"Episode {transcript.episode_number}")
+        pub_date = transcript.meta.get("pub_date", "")
+        content = transcript.meta.get("content", "")
+
+        result = {
+            "episode_number": transcript.episode_number,
+            "title": title,
+            "pub_date": pub_date,
+            "chunks_count": chunks_count,
+            "content": content,
+            "created_at": transcript.created_at.isoformat() if transcript.created_at else None,
+        }
+
+        session.close()
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting transcript detail: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Error getting transcript detail: {str(e)}"
+        )
