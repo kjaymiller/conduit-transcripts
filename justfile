@@ -49,19 +49,19 @@ cli-ingest FILE:
 
 # Transcribe latest episode
 transcribe-latest:
-    uv run python src/transcribe.py ep
+    uv run python -m cli.main transcribe latest
 
 # Transcribe specific episodes (e.g., just transcribe-episodes 100 101 102)
 transcribe-episodes EPISODES:
-    uv run python src/transcribe.py ep {{EPISODES}}
+    uv run python -m cli.main transcribe {{EPISODES}}
 
 # Transcribe episodes in a range (e.g., just transcribe-range 100 105)
 transcribe-range START END:
-    uv run python src/transcribe.py ep --range {{START}}-{{END}}
+    uv run python -m cli.main transcribe {{START}}-{{END}}
 
 # Transcribe all episodes (with confirmation)
 transcribe-all:
-    uv run python src/transcribe.py ep --all
+    uv run python -m cli.main transcribe all
 
 # Transcribe a local audio file
 transcribe-file FILE OUTPUT:
@@ -71,29 +71,29 @@ transcribe-file FILE OUTPUT:
 
 # Load all transcript files into both PostgreSQL and OpenSearch
 upload:
-    uv run python src/quick_upload.py files
+    uv run python -m cli.main ingest
 
 # Load specific transcript files
 upload-files FILES:
-    uv run python src/quick_upload.py files {{FILES}}
+    uv run python -m cli.main ingest {{FILES}}
 
 # Load transcripts with OpenSearch reindexing
 upload-reindex:
-    uv run python src/quick_upload.py files --reindex
+    uv run python -m cli.main ingest --reindex
 
 # Load transcripts to PostgreSQL only
 upload-pg-only:
-    uv run python src/quick_upload.py files --pg-only
+    uv run python -m cli.main ingest --pg-only
 
 # Load transcripts to OpenSearch only
 upload-os-only:
-    uv run python src/quick_upload.py files --os-only
+    uv run python -m cli.main ingest --os-only
 
 # Index Management
 
 # Create or recreate OpenSearch index (destructive - use with caution)
 index-recreate:
-    uv run python src/os_index.py
+    uv run python -m cli.main ingest --reindex
 
 # Code Quality Commands
 
@@ -245,13 +245,13 @@ docker-rebuild: docker-down docker-build docker-up
 
 # Help Commands
 
-# Show help for transcribe.py
+# Show help for transcribe command
 @help-transcribe:
-    uv run python src/transcribe.py --help
+    uv run python -m cli.main transcribe --help
 
-# Show help for quick_upload.py
+# Show help for ingest command
 @help-upload:
-    uv run python src/quick_upload.py --help
+    uv run python -m cli.main ingest --help
 
 # Show help for bd
 @help-bd:

@@ -14,7 +14,7 @@ from conduit_transcripts.database.opensearch import OpenSearchDatabase
 from conduit_transcripts.database.postgres import VectorDatabase
 from conduit_transcripts.models import Transcript, VectorChunk
 from conduit_transcripts.transcription import HybridTranscriber
-from conduit_transcripts.transcription.metadata import get_audio_url_from_episode_number
+from conduit_transcripts.transcription.metadata import get_audio_url_from_episode_number, fetch_latest_episode_number
 
 # Silence noisy loggers
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -144,7 +144,7 @@ def status(
 
 @app.command()
 def transcribe(
-    episode_number: int = typer.Argument(..., help="Episode number to transcribe"),
+    episodes: typing.List[str] = typer.Argument(..., help="Episode number(s) to transcribe (e.g. 100, 100-105, 'latest')"),
     model: str = typer.Option("base", "--model", "-m", help="Model size"),
     prefer_mlx: bool = typer.Option(
         False,
@@ -158,73 +158,89 @@ def transcribe(
 ):
     """Transcribe an episode."""
     try:
-        console.print(
-            f"[blue]Fetching audio URL for episode {episode_number}...[/blue]"
-        )
-        result = get_audio_url_from_episode_number(episode_number)
-
-        if result is None:
-            console.print("[red]Could not fetch episode metadata[/red]")
-            raise typer.Exit(1)
-
-        metadata, audio_url = result
-        console.print(f"[green]Found audio URL: {audio_url}[/green]")
-
-        # Download audio
-        from conduit_transcripts.transcription.audio import download_audio_file
-
-        audio_file = download_audio_file(audio_url)
-        console.print(f"[green]Downloaded audio to: {audio_file}[/green]")
-
-        # Transcribe
-        console.print(f"[blue]Transcribing with {model} model...[/blue]")
-        transcriber = HybridTranscriber(model=model, prefer_mlx=prefer_mlx)
-        transcription = transcriber.transcribe(audio_file)
-
-        # Save transcription
-        import slugify
-
-        slug = slugify.slugify(metadata["title"])
-        output_file = pathlib.Path(f"transcripts/{slug}.md")
-        output_file.parent.mkdir(exist_ok=True)
-
-        import frontmatter
-
-        post = frontmatter.Post(content=transcription, **metadata)
-        # Ensure episode number is in metadata
-        post.metadata["episode_number"] = episode_number
-
-        with output_file.open("w") as f:
-            f.write(frontmatter.dumps(post))
-
-        console.print(f"[green]Transcription saved to: {output_file}[/green]")
-
-        # Cleanup
-        audio_file.unlink()
-
-        if ingest:
-            console.print(f"[blue]Ingesting {output_file}...[/blue]")
-            db = VectorDatabase()
-            success = db.process_frontmatter_post(post)
-            if success:
-                console.print(f"[green]✓ Successfully ingested to PostgreSQL[/green]")
+        episode_list = []
+        for ep_str in episodes:
+            if ep_str.lower() == "latest":
+                episode_list.append(fetch_latest_episode_number())
+            elif ep_str.lower() == "all":
+                latest = fetch_latest_episode_number()
+                episode_list.extend(range(1, latest + 1))
+            elif "-" in ep_str:
+                start, end = map(int, ep_str.split("-"))
+                episode_list.extend(range(start, end + 1))
+            elif "," in ep_str:
+                episode_list.extend(map(int, ep_str.split(",")))
             else:
-                console.print(f"[red]✗ Failed to ingest to PostgreSQL[/red]")
+                episode_list.append(int(ep_str))
 
-            # Try OpenSearch
-            try:
-                os_db = OpenSearchDatabase()
-                os_success = os_db.process_frontmatter_post(post)
-                if os_success:
-                    console.print(
-                        f"[green]✓ Successfully ingested to OpenSearch[/green]"
-                    )
+        for episode_number in episode_list:
+            console.print(
+                f"[blue]Fetching audio URL for episode {episode_number}...[/blue]"
+            )
+            result = get_audio_url_from_episode_number(episode_number)
+
+            if result is None:
+                console.print(f"[red]Could not fetch metadata for episode {episode_number}[/red]")
+                continue
+
+            metadata, audio_url = result
+            console.print(f"[green]Found audio URL: {audio_url}[/green]")
+
+            # Download audio
+            from conduit_transcripts.transcription.audio import download_audio_file
+
+            audio_file = download_audio_file(audio_url)
+            console.print(f"[green]Downloaded audio to: {audio_file}[/green]")
+
+            # Transcribe
+            console.print(f"[blue]Transcribing with {model} model...[/blue]")
+            transcriber = HybridTranscriber(model=model, prefer_mlx=prefer_mlx)
+            transcription = transcriber.transcribe(audio_file)
+
+            # Save transcription
+            import slugify
+
+            slug = slugify.slugify(metadata["title"])
+            output_file = pathlib.Path(f"transcripts/{slug}.md")
+            output_file.parent.mkdir(exist_ok=True)
+
+            import frontmatter
+
+            post = frontmatter.Post(content=transcription, **metadata)
+            # Ensure episode number is in metadata
+            post.metadata["episode_number"] = episode_number
+
+            with output_file.open("w") as f:
+                f.write(frontmatter.dumps(post))
+
+            console.print(f"[green]Transcription saved to: {output_file}[/green]")
+
+            # Cleanup
+            audio_file.unlink()
+
+            if ingest:
+                console.print(f"[blue]Ingesting {output_file}...[/blue]")
+                db = VectorDatabase()
+                success = db.process_frontmatter_post(post)
+                if success:
+                    console.print(f"[green]✓ Successfully ingested to PostgreSQL[/green]")
                 else:
-                    console.print(f"[red]✗ Failed to ingest to OpenSearch[/red]")
-            except ImportError:
-                console.print("[yellow]OpenSearch support not available[/yellow]")
-            except Exception as e:
-                console.print(f"[red]Error indexing to OpenSearch: {e}[/red]")
+                    console.print(f"[red]✗ Failed to ingest to PostgreSQL[/red]")
+
+                # Try OpenSearch
+                try:
+                    os_db = OpenSearchDatabase()
+                    os_success = os_db.process_frontmatter_post(post)
+                    if os_success:
+                        console.print(
+                            f"[green]✓ Successfully ingested to OpenSearch[/green]"
+                        )
+                    else:
+                        console.print(f"[red]✗ Failed to ingest to OpenSearch[/red]")
+                except ImportError:
+                    console.print("[yellow]OpenSearch support not available[/yellow]")
+                except Exception as e:
+                    console.print(f"[red]Error indexing to OpenSearch: {e}[/red]")
 
     except Exception as e:
         console.print(f"[red]Error transcribing: {e}[/red]")
@@ -264,8 +280,8 @@ def transcribe_file(
 
 @app.command()
 def ingest(
-    files: typing.Optional[typing.List[pathlib.Path]] = typer.Option(
-        None, "--file", help="Specific file(s) to ingest"
+    files: typing.Optional[typing.List[pathlib.Path]] = typer.Argument(
+        None, help="Specific file(s) to ingest"
     ),
     directory: pathlib.Path = typer.Option(
         pathlib.Path("transcripts"), "--dir", help="Directory to ingest"
