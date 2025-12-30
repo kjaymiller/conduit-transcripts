@@ -65,7 +65,7 @@ transcribe-all:
 
 # Transcribe a local audio file
 transcribe-file FILE OUTPUT:
-    uv run python src/transcribe.py file {{FILE}} --output {{OUTPUT}}
+    uv run python -m cli.main transcribe-file {{FILE}} --output {{OUTPUT}}
 
 # Data Ingestion Commands
 
@@ -234,7 +234,7 @@ ingest:
 
 # Access PostgreSQL shell
 docker-psql:
-    docker-compose exec postgres psql -U postgres -d transcripts
+    docker-compose exec postgres psql -U postgres -d postgres
 
 # Show Docker service status
 docker-status:
