@@ -16,14 +16,14 @@ class Settings:
     # Database configuration
     POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
     POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
-    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "transcripts")
+    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "postgres")
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")
     POSTGRES_TABLE_TRANSCRIPTS: str = os.getenv(
-        "POSTGRES_TABLE_TRANSCRIPTS", "transcripts"
+        "POSTGRES_TABLE_TRANSCRIPTS", "transcriptions"
     )
     POSTGRES_TABLE_VECTORS: str = os.getenv(
-        "POSTGRES_TABLE_VECTORS", "transcript_vector"
+        "POSTGRES_TABLE_VECTORS", "search"
     )
 
     # OpenSearch configuration
@@ -50,7 +50,7 @@ class Settings:
     EMBEDDING_DEVICE: str = os.getenv("EMBEDDING_DEVICE", "cpu")
 
     # Ollama configuration
-    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
     # API configuration
     API_HOST: str = os.getenv("API_HOST", "0.0.0.0")
