@@ -9,12 +9,8 @@ from rich.console import Console
 from rich.table import Table
 from sqlalchemy import select
 
-from conduit_transcripts.config import settings
-from conduit_transcripts.database.opensearch import OpenSearchDatabase
-from conduit_transcripts.database.postgres import VectorDatabase
-from conduit_transcripts.models import Transcript, VectorChunk
-from conduit_transcripts.transcription import HybridTranscriber
-from conduit_transcripts.transcription.metadata import get_audio_url_from_episode_number, fetch_latest_episode_number
+# Imports moved to functions for lazy loading
+
 
 # Silence noisy loggers
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -32,6 +28,10 @@ def search(
 ):
     """Search transcripts."""
     try:
+        from conduit_transcripts.config import settings
+        from conduit_transcripts.database.postgres import VectorDatabase
+        from conduit_transcripts.models import VectorChunk
+
         db = VectorDatabase()
         session = db.Session()
 
@@ -108,6 +108,9 @@ def status(
 ):
     """Check episode status."""
     try:
+        from conduit_transcripts.database.postgres import VectorDatabase
+        from conduit_transcripts.models import Transcript
+
         db = VectorDatabase()
         session = db.Session()
 
@@ -158,6 +161,8 @@ def transcribe(
 ):
     """Transcribe an episode."""
     try:
+        from conduit_transcripts.transcription.metadata import get_audio_url_from_episode_number, fetch_latest_episode_number
+
         episode_list = []
         for ep_str in episodes:
             if ep_str.lower() == "latest":
@@ -194,6 +199,7 @@ def transcribe(
 
             # Transcribe
             console.print(f"[blue]Transcribing with {model} model...[/blue]")
+            from conduit_transcripts.transcription import HybridTranscriber
             transcriber = HybridTranscriber(model=model, prefer_mlx=prefer_mlx)
             transcription = transcriber.transcribe(audio_file)
 
@@ -220,6 +226,7 @@ def transcribe(
 
             if ingest:
                 console.print(f"[blue]Ingesting {output_file}...[/blue]")
+                from conduit_transcripts.database.postgres import VectorDatabase
                 db = VectorDatabase()
                 success = db.process_frontmatter_post(post)
                 if success:
@@ -229,6 +236,7 @@ def transcribe(
 
                 # Try OpenSearch
                 try:
+                    from conduit_transcripts.database.opensearch import OpenSearchDatabase
                     os_db = OpenSearchDatabase()
                     os_success = os_db.process_frontmatter_post(post)
                     if os_success:
@@ -262,6 +270,7 @@ def transcribe_file(
     """Transcribe a local audio file."""
     try:
         console.print(f"[blue]Transcribing {file_path} with {model} model...[/blue]")
+        from conduit_transcripts.transcription import HybridTranscriber
         transcriber = HybridTranscriber(model=model, prefer_mlx=prefer_mlx)
         transcription = transcriber.transcribe(file_path)
 
@@ -311,10 +320,12 @@ def ingest(
 
         if not os_only:
             console.print("[blue]Initializing PostgreSQL database...[/blue]")
+            from conduit_transcripts.database.postgres import VectorDatabase
             pg_db = VectorDatabase(recreate_tables=reindex)
 
         if not pg_only:
             try:
+                from conduit_transcripts.database.opensearch import OpenSearchDatabase
                 os_db = OpenSearchDatabase()
                 if reindex:
                     console.print("[blue]Recreating OpenSearch index...[/blue]")
@@ -383,6 +394,9 @@ def list(
 ):
     """List episodes."""
     try:
+        from conduit_transcripts.database.postgres import VectorDatabase
+        from conduit_transcripts.models import Transcript
+
         db = VectorDatabase()
         session = db.Session()
 
