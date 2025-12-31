@@ -4,7 +4,7 @@ services:
     image: pgvector/pgvector:pg16
     container_name: conduit-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB_NAME:-transcripts}
+      POSTGRES_DB: ${POSTGRES_DB_NAME:-postgres}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
@@ -33,6 +33,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       API_PORT: 8000
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,6 +60,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       API_PORT: 8000
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
     depends_on:
       postgres:
         condition: service_healthy
