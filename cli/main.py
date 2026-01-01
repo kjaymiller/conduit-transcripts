@@ -181,7 +181,9 @@ def transcribe(
     episodes: typing.List[str] = typer.Argument(
         ..., help="Episode number(s) to transcribe (e.g. 100, 100-105, 'latest')"
     ),
-    model: str = typer.Option("base", "--model", "-m", help="Model size"),
+    model: str = typer.Option(
+        "base", "--model", "-m", help="Model size", envvar="TRANSCRIPTION_MODEL"
+    ),
     prefer_mlx: bool = typer.Option(
         False,
         "--prefer-mlx/--no-mlx",
@@ -305,7 +307,9 @@ def transcribe_file(
     file_path: pathlib.Path = typer.Argument(
         ..., help="Path to audio file", exists=True
     ),
-    model: str = typer.Option("base", "--model", "-m", help="Model size"),
+    model: str = typer.Option(
+        "base", "--model", "-m", help="Model size", envvar="TRANSCRIPTION_MODEL"
+    ),
     prefer_mlx: bool = typer.Option(
         False,
         "--prefer-mlx/--no-mlx",

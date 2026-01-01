@@ -52,6 +52,10 @@ uv run conduit transcribe <episode_number> --no-ingest
 
 # Use specific model size (tiny, base, small, medium, large)
 uv run conduit transcribe <episode_number> --model medium
+
+# Or set TRANSCRIPTION_MODEL environment variable to set default model size
+export TRANSCRIPTION_MODEL=medium
+uv run conduit transcribe <episode_number>
 ```
 
 ### Data Ingestion
