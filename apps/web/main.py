@@ -176,14 +176,6 @@ async def episode_page(
                 status_code=404, detail=f"Episode {episode_number} not found"
             )
 
-        # Parse markdown content
-        import markdown
-
-        if result.get("content"):
-            result["content"] = markdown.markdown(
-                result["content"], extensions=["fenced_code", "tables", "nl2br"]
-            )
-
         return templates.TemplateResponse(
             request=request, name="episode.html", context={"episode": result}
         )
