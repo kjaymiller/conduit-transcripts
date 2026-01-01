@@ -20,7 +20,7 @@ The Docker Compose setup includes three services:
 - **Features**:
   - Reads transcripts from `/transcripts` directory
   - Chunks text and generates embeddings
-  - Stores data in `transcripts` and `vector_chunks` tables
+  - Stores data in `transcriptions` and `search` tables
   - Uses existing `quick_upload.py` script
 
 ### 3. MCP Server (`mcp-server`)
@@ -62,18 +62,25 @@ The Docker Compose setup includes three services:
 
 ## Database Schema
 
-The PostgreSQL database includes two main tables:
+The PostgreSQL database includes three main tables:
 
-### `transcripts`
+### `podcasts`
+- Primary key: `id` (text, e.g., "Conduit")
+- Columns: `title`, `description`, `feed_url`, `created_at`, `updated_at`
+- Stores podcast-level metadata
+
+### `transcriptions`
 - Primary key: `(podcast, episode_number)`
-- Columns: title, description, url, pub_date, content
-- Stores complete episode metadata and transcript text
+- Foreign key: `podcast` → `podcasts.id`
+- Columns: `title`, `description`, `url`, `published_date`, `meta` (JSONB), `created_at`, `updated_at`
+- Stores episode metadata
 
-### `vector_chunks`
+### `search`
 - Primary key: `id` (serial)
-- Foreign key: `(podcast, episode_number)` → `transcripts`
-- Contains chunked text with 768-dimensional embeddings
-- Indexed for fast vector similarity search using IVFFlat
+- Foreign key: `(podcast, episode_number)` → `transcriptions`
+- Columns: `content`, `embedding` (768-dim vector), `created_at`
+- Stores chunked text with embeddings for vector similarity search
+- Indexed using IVFFlat
 
 ## Volume Management
 
