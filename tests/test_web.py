@@ -39,3 +39,50 @@ def test_web_title_search(MockVectorDatabase):
 
     # Verify query
     session.query.assert_called_with(Transcript)
+
+
+@patch("apps.web.main.actions.get_episode_details")
+def test_episode_page(mock_get_details):
+    # Setup
+    mock_get_details.return_value = {
+        "episode_number": 100,
+        "podcast": "1",
+        "metadata": {
+            "title": "Test Episode",
+            "description": "A test description",
+            "url": "http://example.com",
+            "pub_date": "2023-01-01",
+        },
+        "content": "# Markdown Content",
+        "chunks_count": 10,
+    }
+
+    # Run
+    response = client.get("/episode/100")
+
+    # Verify
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert "Test Episode" in response.text
+    # Check if markdown was converted to HTML
+    assert "<h1>Markdown Content</h1>" in response.text
+
+
+@patch("apps.web.main.rag.generate_episode_response")
+def test_chat_episode(mock_generate):
+    # Setup
+    def fake_generator(query, episode_number):
+        yield "Hello "
+        yield "World"
+
+    mock_generate.side_effect = fake_generator
+
+    # Run
+    response = client.post("/api/chat/100", json={"query": "hello"})
+
+    # Verify
+    assert response.status_code == 200
+    # TestClient reads the full streaming response
+    assert response.text == "Hello World"
+
+    mock_generate.assert_called_once_with("hello", 100)

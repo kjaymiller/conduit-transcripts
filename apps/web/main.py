@@ -46,13 +46,13 @@ app.add_middleware(
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     """Serve the search UI."""
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html")
 
 
 @app.get("/stats", response_class=HTMLResponse)
 async def stats_page(request: Request):
     """Serve the statistics page."""
-    return templates.TemplateResponse("stats.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="stats.html")
 
 
 @app.get("/api/stats")
@@ -185,7 +185,7 @@ async def episode_page(
             )
 
         return templates.TemplateResponse(
-            "episode.html", {"request": request, "episode": result}
+            request=request, name="episode.html", context={"episode": result}
         )
     except HTTPException:
         raise
