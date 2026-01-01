@@ -137,12 +137,11 @@ def status(
             console.print(f"[green]✓ Episode {episode_number} is ingested[/green]")
             console.print(f"[blue]Chunks: {chunks_count}[/blue]")
 
-            meta = transcript.meta
-            if meta.get("title"):
-                console.print(f"[white]Title: {meta['title']}[/white]")
-            if meta.get("description"):
+            if transcript.title:
+                console.print(f"[white]Title: {transcript.title}[/white]")
+            if transcript.description:
                 console.print(
-                    f"[white]Description: {meta['description'][:100]}...[/white]"
+                    f"[white]Description: {transcript.description[:100]}...[/white]"
                 )
         else:
             console.print(f"[red]✗ Episode {episode_number} not found[/red]")
@@ -446,11 +445,12 @@ def list(
         table.add_column("Published", style="green")
 
         for transcript in transcripts:
-            meta = transcript.meta
             table.add_row(
                 str(transcript.episode_number),
-                meta.get("title", "No title"),
-                meta.get("pub_date", "Unknown"),
+                transcript.title or "No title",
+                str(transcript.published_date)
+                if transcript.published_date
+                else "Unknown",
             )
 
         console.print(table)

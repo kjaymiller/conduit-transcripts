@@ -5,6 +5,7 @@ import re
 from typing import Optional
 
 import frontmatter
+from dateutil import parser
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_ollama import OllamaEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -22,7 +23,7 @@ class VectorDatabase:
 
     def __init__(self, recreate_tables: bool = False):
         """Initialize the database handler.
-        
+
         Args:
             recreate_tables: If True, drop and recreate tables.
         """
@@ -63,10 +64,10 @@ class VectorDatabase:
 
     def process_frontmatter_post(self, post: frontmatter.Post) -> bool:
         """Process a frontmatter post and save to database.
-        
+
         Args:
             post: The frontmatter post object.
-            
+
         Returns:
             True if successful, False otherwise.
         """
@@ -82,12 +83,25 @@ class VectorDatabase:
             if match:
                 episode_number = int(match.group())
             else:
-                logger.error(f"Could not extract episode number from title: {metadata['title']}")
+                logger.error(
+                    f"Could not extract episode number from title: {metadata['title']}"
+                )
                 return False
         else:
             episode_number = int(metadata["episode_number"])
 
         logger.debug(f"Processing episode {episode_number}")
+
+        # Extract normalized fields
+        title = metadata.get("title")
+        description = metadata.get("description")
+        url = metadata.get("url")
+        published_date = None
+        if "pub_date" in metadata and metadata["pub_date"]:
+            try:
+                published_date = parser.parse(str(metadata["pub_date"]))
+            except Exception:
+                logger.warning(f"Could not parse pub_date: {metadata['pub_date']}")
 
         # Start session
         session = self.Session()
@@ -97,12 +111,22 @@ class VectorDatabase:
             transcript = session.query(Transcript).get((podcast, episode_number))
             if not transcript:
                 transcript = Transcript(
-                    episode_number=episode_number, podcast=podcast, meta=metadata
+                    episode_number=episode_number,
+                    podcast=podcast,
+                    meta=metadata,
+                    title=title,
+                    description=description,
+                    url=url,
+                    published_date=published_date,
                 )
                 session.add(transcript)
             else:
                 transcript.meta = metadata
-            
+                transcript.title = title
+                transcript.description = description
+                transcript.url = url
+                transcript.published_date = published_date
+
             # Clear existing chunks for this episode to avoid duplicates
             session.query(VectorChunk).filter_by(
                 episode_number=episode_number, podcast=podcast
@@ -110,10 +134,10 @@ class VectorDatabase:
 
             # Create chunks and embeddings using text splitter
             texts = self.text_splitter.split_text(metadata["content"])
-            
+
             if not texts:
                 logger.warning(f"No content to chunk for episode {episode_number}")
-                
+
             if texts:
                 embeddings = self.embedding_model.embed_documents(texts)
 
