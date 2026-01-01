@@ -177,7 +177,12 @@ async def episode_page(
             )
 
         return templates.TemplateResponse(
-            request=request, name="episode.html", context={"episode": result}
+            request=request,
+            name="episode.html",
+            context={
+                "episode": result,
+                "llm_model": settings.LLM_MODEL,
+            },
         )
     except HTTPException:
         raise

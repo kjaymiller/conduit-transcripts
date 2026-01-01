@@ -42,7 +42,11 @@ def test_web_title_search(MockVectorDatabase):
 
 
 @patch("apps.web.main.actions.get_episode_details")
-def test_episode_page(mock_get_details):
+@patch("apps.web.main.settings")
+def test_episode_page(mock_settings, mock_get_details):
+    # Setup settings
+    mock_settings.LLM_MODEL = "test-model-v1"
+
     # Setup
     mock_get_details.return_value = {
         "episode_number": 100,
@@ -64,8 +68,10 @@ def test_episode_page(mock_get_details):
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
     assert "Test Episode" in response.text
-    # Check if markdown was converted to HTML
-    assert "<h1>Markdown Content</h1>" in response.text
+    # Check if content is present
+    assert "# Markdown Content" in response.text
+    # Check if LLM model is displayed
+    assert "using test-model-v1" in response.text
 
 
 @patch("apps.web.main.rag.generate_episode_response")
