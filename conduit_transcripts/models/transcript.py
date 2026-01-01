@@ -26,7 +26,8 @@ class Podcast(Base):
 
     __tablename__ = "podcasts"
 
-    id = Column(Text, primary_key=True)  # Slug-like ID, e.g. "Conduit"
+    id = Column(Integer, primary_key=True)
+    slug = Column(Text, unique=True, nullable=False)
     title = Column(Text)
     description = Column(Text)
     feed_url = Column(Text)
@@ -41,7 +42,7 @@ class Transcript(Base):
 
     __tablename__ = settings.POSTGRES_TABLE_TRANSCRIPTS
 
-    podcast = Column(Text, ForeignKey("podcasts.id"), primary_key=True)
+    podcast = Column(Integer, ForeignKey("podcasts.id"), primary_key=True)
     episode_number = Column(Integer, primary_key=True)
     meta = Column(JSONB)
     title = Column(Text)
@@ -73,7 +74,7 @@ class VectorChunk(Base):
 
     id = Column(Integer, primary_key=True)
     episode_number = Column(Integer)
-    podcast = Column(Text)
+    podcast = Column(Integer)
     content = Column(Text)
     embedding = mapped_column(Vector(768))
     created_at = Column(DateTime, server_default=func.now())

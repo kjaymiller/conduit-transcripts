@@ -73,7 +73,8 @@ class VectorDatabase:
         """
         # Convert frontmatter post to dictionary
         metadata = post.metadata.copy()
-        podcast = "Conduit"
+        podcast_name = "Conduit"
+        podcast_id = 1
 
         # Store content in metadata
         metadata["content"] = post.content
@@ -108,18 +109,20 @@ class VectorDatabase:
 
         try:
             # Ensure podcast exists
-            podcast_obj = session.query(Podcast).get(podcast)
+            podcast_obj = session.query(Podcast).get(podcast_id)
             if not podcast_obj:
-                podcast_obj = Podcast(id=podcast, title=podcast)
+                podcast_obj = Podcast(
+                    id=podcast_id, slug=podcast_name, title=podcast_name
+                )
                 session.add(podcast_obj)
                 session.flush()
 
             # Check if exists and update or insert
-            transcript = session.query(Transcript).get((podcast, episode_number))
+            transcript = session.query(Transcript).get((podcast_id, episode_number))
             if not transcript:
                 transcript = Transcript(
                     episode_number=episode_number,
-                    podcast=podcast,
+                    podcast=podcast_id,
                     meta=metadata,
                     title=title,
                     description=description,
@@ -136,7 +139,7 @@ class VectorDatabase:
 
             # Clear existing chunks for this episode to avoid duplicates
             session.query(VectorChunk).filter_by(
-                episode_number=episode_number, podcast=podcast
+                episode_number=episode_number, podcast=podcast_id
             ).delete()
 
             # Create chunks and embeddings using text splitter
@@ -152,7 +155,7 @@ class VectorDatabase:
                 for text_content, embedding in zip(texts, embeddings):
                     chunk = VectorChunk(
                         episode_number=episode_number,
-                        podcast=podcast,
+                        podcast=podcast_id,
                         content=text_content,
                         embedding=embedding,
                     )

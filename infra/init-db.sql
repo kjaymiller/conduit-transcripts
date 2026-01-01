@@ -11,7 +11,8 @@ DROP TABLE IF EXISTS podcasts;
 
 -- Create podcasts table
 CREATE TABLE IF NOT EXISTS podcasts (
-    id TEXT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
+    slug TEXT UNIQUE NOT NULL,
     title TEXT,
     description TEXT,
     feed_url TEXT,
@@ -20,11 +21,11 @@ CREATE TABLE IF NOT EXISTS podcasts (
 );
 
 -- Insert default podcast "Conduit"
-INSERT INTO podcasts (id, title, description) VALUES ('Conduit', 'Conduit', 'Productivity podcast') ON CONFLICT DO NOTHING;
+INSERT INTO podcasts (id, slug, title, description) VALUES (1, 'Conduit', 'Conduit', 'Productivity podcast') ON CONFLICT DO NOTHING;
 
 -- Create transcriptions table
 CREATE TABLE IF NOT EXISTS transcriptions (
-    podcast TEXT NOT NULL,
+    podcast INTEGER NOT NULL,
     episode_number INTEGER NOT NULL,
     meta JSONB,
     title TEXT,
@@ -40,7 +41,7 @@ CREATE TABLE IF NOT EXISTS transcriptions (
 -- Create search table (formerly transcript_vector)
 CREATE TABLE IF NOT EXISTS search (
     id SERIAL PRIMARY KEY,
-    podcast TEXT NOT NULL,
+    podcast INTEGER NOT NULL,
     episode_number INTEGER NOT NULL,
     content TEXT,
     embedding vector(768),

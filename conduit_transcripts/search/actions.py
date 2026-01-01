@@ -88,7 +88,7 @@ def vector_search(
                     search_results.append(
                         SearchResult(
                             episode_number=chunk.episode_number,
-                            podcast=chunk.podcast,
+                            podcast=str(chunk.podcast),
                             title=meta.get("title"),
                             description=meta.get("description"),
                             url=meta.get("url"),
@@ -145,7 +145,7 @@ def text_search(query: str, limit: int = 10) -> List[SearchResult]:
                 search_results.append(
                     SearchResult(
                         episode_number=chunk.episode_number,
-                        podcast=chunk.podcast,
+                        podcast=str(chunk.podcast),
                         title=meta.get("title"),
                         description=meta.get("description"),
                         url=meta.get("url"),
@@ -170,7 +170,15 @@ def text_search(query: str, limit: int = 10) -> List[SearchResult]:
 def get_episode_details(episode_number: int, podcast: str) -> Optional[Dict[str, Any]]:
     """Get full transcript for a specific episode."""
     try:
-        logger.info(f"Getting episode {episode_number} from {podcast}")
+        # TODO: Handle podcast lookup by name/slug if string provided
+        # For now, assume "Conduit" -> 1 if not int
+        podcast_id = 1
+        if isinstance(podcast, int):
+            podcast_id = podcast
+        elif podcast == "Conduit":
+            podcast_id = 1
+
+        logger.info(f"Getting episode {episode_number} from podcast {podcast_id}")
 
         vector_db = VectorDatabase()
         session = vector_db.Session()
@@ -180,7 +188,7 @@ def get_episode_details(episode_number: int, podcast: str) -> Optional[Dict[str,
             transcript = (
                 session.query(Transcript)
                 .filter(
-                    Transcript.podcast == podcast,
+                    Transcript.podcast == podcast_id,
                     Transcript.episode_number == episode_number,
                 )
                 .first()
@@ -193,7 +201,7 @@ def get_episode_details(episode_number: int, podcast: str) -> Optional[Dict[str,
             chunks = (
                 session.query(VectorChunk)
                 .filter(
-                    VectorChunk.podcast == podcast,
+                    VectorChunk.podcast == podcast_id,
                     VectorChunk.episode_number == episode_number,
                 )
                 .order_by(VectorChunk.id)
@@ -202,7 +210,7 @@ def get_episode_details(episode_number: int, podcast: str) -> Optional[Dict[str,
 
             return {
                 "episode_number": episode_number,
-                "podcast": podcast,
+                "podcast": str(podcast_id),
                 "metadata": transcript.meta,
                 "content": transcript.meta.get("content", ""),
                 "chunks_count": len(chunks),

@@ -127,7 +127,7 @@ def status(
             session.query(Transcript)
             .filter(
                 Transcript.episode_number == episode_number,
-                Transcript.podcast == "Conduit",
+                Transcript.podcast == 1,
             )
             .first()
         )
