@@ -40,9 +40,9 @@ class OpenSearchDatabase:
 
         # Initialize text processing tools
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=300,
-            chunk_overlap=20,
-            separators=[".", "!", "?", "\n"],
+            chunk_size=500,
+            chunk_overlap=50,
+            separators=[".", "!", "?", "\n", " ", ""],
         )
 
         self.embedding_model = HuggingFaceEmbeddings(
