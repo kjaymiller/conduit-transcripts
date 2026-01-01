@@ -56,6 +56,9 @@ uv run conduit transcribe <episode_number> --model medium
 # Or set TRANSCRIPTION_MODEL environment variable to set default model size
 export TRANSCRIPTION_MODEL=medium
 uv run conduit transcribe <episode_number>
+
+# Configure the LLM model for RAG (Retrieval Augmented Generation)
+export LLM_MODEL=llama3
 ```
 
 ### Data Ingestion
