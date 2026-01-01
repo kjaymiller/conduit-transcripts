@@ -4,7 +4,7 @@ services:
     image: pgvector/pgvector:pg16
     container_name: conduit-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB_NAME:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB_NAME:-transcripts}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:

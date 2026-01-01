@@ -16,15 +16,13 @@ class Settings:
     # Database configuration
     POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
     POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
-    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "postgres")
+    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "transcripts")
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")
     POSTGRES_TABLE_TRANSCRIPTS: str = os.getenv(
         "POSTGRES_TABLE_TRANSCRIPTS", "transcriptions"
     )
-    POSTGRES_TABLE_VECTORS: str = os.getenv(
-        "POSTGRES_TABLE_VECTORS", "search"
-    )
+    POSTGRES_TABLE_VECTORS: str = os.getenv("POSTGRES_TABLE_VECTORS", "search")
 
     # OpenSearch configuration
     OPENSEARCH_HOST: str = os.getenv("OPENSEARCH_HOST", "localhost")
