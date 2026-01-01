@@ -6,11 +6,13 @@ from typing import Dict, Any, List, Optional
 
 import frontmatter
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_ollama import OllamaEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # Import OpenSearch lazily
 try:
     from opensearchpy import OpenSearch, helpers
+
     OPENSEARCH_AVAILABLE = True
 except ImportError:
     OPENSEARCH_AVAILABLE = False
@@ -29,9 +31,14 @@ class OpenSearchDatabase:
             raise ImportError(
                 "opensearch-py is not installed. Install with 'uv pip install conduit-transcripts[opensearch]' or 'uv sync --extra opensearch'"
             )
-            
+
         self.client = OpenSearch(
-            hosts=[{"host": settings.OPENSEARCH_HOST, "port": int(settings.OPENSEARCH_PORT)}],
+            hosts=[
+                {
+                    "host": settings.OPENSEARCH_HOST,
+                    "port": int(settings.OPENSEARCH_PORT),
+                }
+            ],
             use_ssl=True,
             verify_certs=False,  # For dev environments
             timeout=100,
@@ -45,11 +52,17 @@ class OpenSearchDatabase:
             separators=[".", "!", "?", "\n", " ", ""],
         )
 
-        self.embedding_model = HuggingFaceEmbeddings(
-            model_name=settings.EMBEDDING_MODEL,
-            model_kwargs={"device": settings.EMBEDDING_DEVICE},
-            encode_kwargs={"normalize_embeddings": False},
-        )
+        if settings.EMBEDDING_PROVIDER == "ollama":
+            self.embedding_model = OllamaEmbeddings(
+                model=settings.EMBEDDING_MODEL,
+                base_url=settings.OLLAMA_BASE_URL,
+            )
+        else:
+            self.embedding_model = HuggingFaceEmbeddings(
+                model_name=settings.EMBEDDING_MODEL,
+                model_kwargs={"device": settings.EMBEDDING_DEVICE},
+                encode_kwargs={"normalize_embeddings": False},
+            )
 
     def create_index(self) -> None:
         """Create the OpenSearch index with mapping."""

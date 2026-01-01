@@ -5,6 +5,7 @@ from typing import List, Optional, Dict, Any
 
 from sqlalchemy import select
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_ollama import OllamaEmbeddings
 
 from conduit_transcripts.config import settings
 from conduit_transcripts.database.postgres import VectorDatabase
@@ -21,11 +22,17 @@ def get_embedding_model():
     """Get embedding model."""
     global _embedding_model
     if _embedding_model is None:
-        _embedding_model = HuggingFaceEmbeddings(
-            model_name=settings.EMBEDDING_MODEL,
-            model_kwargs={"device": settings.EMBEDDING_DEVICE},
-            encode_kwargs={"normalize_embeddings": False},
-        )
+        if settings.EMBEDDING_PROVIDER == "ollama":
+            _embedding_model = OllamaEmbeddings(
+                model=settings.EMBEDDING_MODEL,
+                base_url=settings.OLLAMA_BASE_URL,
+            )
+        else:
+            _embedding_model = HuggingFaceEmbeddings(
+                model_name=settings.EMBEDDING_MODEL,
+                model_kwargs={"device": settings.EMBEDDING_DEVICE},
+                encode_kwargs={"normalize_embeddings": False},
+            )
     return _embedding_model
 
 
@@ -49,7 +56,9 @@ def vector_search(
             results = session.execute(
                 select(
                     VectorChunk,
-                    VectorChunk.embedding.l2_distance(query_embedding).label("distance"),
+                    VectorChunk.embedding.l2_distance(query_embedding).label(
+                        "distance"
+                    ),
                 )
                 .order_by(VectorChunk.embedding.l2_distance(query_embedding))
                 .limit(limit)

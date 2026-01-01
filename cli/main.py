@@ -37,13 +37,22 @@ def search(
 
         if vector:
             # Vector search using PostgreSQL
-            from langchain_huggingface import HuggingFaceEmbeddings
+            if settings.EMBEDDING_PROVIDER == "ollama":
+                from langchain_ollama import OllamaEmbeddings
 
-            embedding_model = HuggingFaceEmbeddings(
-                model_name=settings.EMBEDDING_MODEL,
-                model_kwargs={"device": settings.EMBEDDING_DEVICE},
-                encode_kwargs={"normalize_embeddings": False},
-            )
+                embedding_model = OllamaEmbeddings(
+                    model=settings.EMBEDDING_MODEL,
+                    base_url=settings.OLLAMA_BASE_URL,
+                )
+            else:
+                from langchain_huggingface import HuggingFaceEmbeddings
+
+                embedding_model = HuggingFaceEmbeddings(
+                    model_name=settings.EMBEDDING_MODEL,
+                    model_kwargs={"device": settings.EMBEDDING_DEVICE},
+                    encode_kwargs={"normalize_embeddings": False},
+                )
+
             query_embedding = embedding_model.embed_query(query)
 
             results = session.execute(
@@ -147,7 +156,9 @@ def status(
 
 @app.command()
 def transcribe(
-    episodes: typing.List[str] = typer.Argument(..., help="Episode number(s) to transcribe (e.g. 100, 100-105, 'latest')"),
+    episodes: typing.List[str] = typer.Argument(
+        ..., help="Episode number(s) to transcribe (e.g. 100, 100-105, 'latest')"
+    ),
     model: str = typer.Option("base", "--model", "-m", help="Model size"),
     prefer_mlx: bool = typer.Option(
         False,
@@ -161,7 +172,10 @@ def transcribe(
 ):
     """Transcribe an episode."""
     try:
-        from conduit_transcripts.transcription.metadata import get_audio_url_from_episode_number, fetch_latest_episode_number
+        from conduit_transcripts.transcription.metadata import (
+            get_audio_url_from_episode_number,
+            fetch_latest_episode_number,
+        )
 
         episode_list = []
         for ep_str in episodes:
@@ -185,7 +199,9 @@ def transcribe(
             result = get_audio_url_from_episode_number(episode_number)
 
             if result is None:
-                console.print(f"[red]Could not fetch metadata for episode {episode_number}[/red]")
+                console.print(
+                    f"[red]Could not fetch metadata for episode {episode_number}[/red]"
+                )
                 continue
 
             metadata, audio_url = result
@@ -200,6 +216,7 @@ def transcribe(
             # Transcribe
             console.print(f"[blue]Transcribing with {model} model...[/blue]")
             from conduit_transcripts.transcription import HybridTranscriber
+
             transcriber = HybridTranscriber(model=model, prefer_mlx=prefer_mlx)
             transcription = transcriber.transcribe(audio_file)
 
@@ -227,16 +244,22 @@ def transcribe(
             if ingest:
                 console.print(f"[blue]Ingesting {output_file}...[/blue]")
                 from conduit_transcripts.database.postgres import VectorDatabase
+
                 db = VectorDatabase()
                 success = db.process_frontmatter_post(post)
                 if success:
-                    console.print(f"[green]✓ Successfully ingested to PostgreSQL[/green]")
+                    console.print(
+                        f"[green]✓ Successfully ingested to PostgreSQL[/green]"
+                    )
                 else:
                     console.print(f"[red]✗ Failed to ingest to PostgreSQL[/red]")
 
                 # Try OpenSearch
                 try:
-                    from conduit_transcripts.database.opensearch import OpenSearchDatabase
+                    from conduit_transcripts.database.opensearch import (
+                        OpenSearchDatabase,
+                    )
+
                     os_db = OpenSearchDatabase()
                     os_success = os_db.process_frontmatter_post(post)
                     if os_success:
@@ -257,7 +280,9 @@ def transcribe(
 
 @app.command(name="transcribe-file")
 def transcribe_file(
-    file_path: pathlib.Path = typer.Argument(..., help="Path to audio file", exists=True),
+    file_path: pathlib.Path = typer.Argument(
+        ..., help="Path to audio file", exists=True
+    ),
     model: str = typer.Option("base", "--model", "-m", help="Model size"),
     prefer_mlx: bool = typer.Option(
         False,
@@ -265,12 +290,15 @@ def transcribe_file(
         help="Prefer MLX",
         envvar="TRANSCRIBE_PREFER_MLX",
     ),
-    output: pathlib.Path = typer.Option(None, "--output", "-o", help="Output file path"),
+    output: pathlib.Path = typer.Option(
+        None, "--output", "-o", help="Output file path"
+    ),
 ):
     """Transcribe a local audio file."""
     try:
         console.print(f"[blue]Transcribing {file_path} with {model} model...[/blue]")
         from conduit_transcripts.transcription import HybridTranscriber
+
         transcriber = HybridTranscriber(model=model, prefer_mlx=prefer_mlx)
         transcription = transcriber.transcribe(file_path)
 
@@ -321,11 +349,13 @@ def ingest(
         if not os_only:
             console.print("[blue]Initializing PostgreSQL database...[/blue]")
             from conduit_transcripts.database.postgres import VectorDatabase
+
             pg_db = VectorDatabase(recreate_tables=reindex)
 
         if not pg_only:
             try:
                 from conduit_transcripts.database.opensearch import OpenSearchDatabase
+
                 os_db = OpenSearchDatabase()
                 if reindex:
                     console.print("[blue]Recreating OpenSearch index...[/blue]")
@@ -340,7 +370,9 @@ def ingest(
                     )
                     raise typer.Exit(1)
 
-        with console.status(f"[bold green]Ingesting {len(files_to_process)} files...") as status:
+        with console.status(
+            f"[bold green]Ingesting {len(files_to_process)} files..."
+        ) as status:
             success_count = 0
             fail_count = 0
 
