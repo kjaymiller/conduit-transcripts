@@ -139,6 +139,27 @@ async def text_search(
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 
+@app.get("/search/title", response_model=SearchResponse)
+async def title_search(
+    query: str = Query(..., description="Search query text"),
+    limit: int = Query(10, ge=1, le=100, description="Maximum number of results"),
+):
+    """
+    Search transcripts by title.
+    """
+    try:
+        results = actions.title_search(query, limit)
+        return SearchResponse(
+            query=query,
+            results=results,
+            total_results=len(results),
+            search_type="title_match",
+        )
+    except Exception as e:
+        logger.error(f"Title search error: {e}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
 @app.get("/episode/{episode_number}", response_model=dict)
 async def get_episode(
     episode_number: int,

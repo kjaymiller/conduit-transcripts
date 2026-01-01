@@ -24,13 +24,14 @@ console = Console()
 def search(
     query: str = typer.Argument(..., help="Search query"),
     vector: bool = typer.Option(False, "--vector", "-v", help="Use vector search"),
+    title: bool = typer.Option(False, "--title", "-t", help="Search by title"),
     limit: int = typer.Option(10, "--limit", "-l", help="Maximum results"),
 ):
     """Search transcripts."""
     try:
         from conduit_transcripts.config import settings
         from conduit_transcripts.database.postgres import VectorDatabase
-        from conduit_transcripts.models import VectorChunk
+        from conduit_transcripts.models import VectorChunk, Transcript
 
         db = VectorDatabase()
         session = db.Session()
@@ -81,6 +82,28 @@ def search(
                     chunk.content[:100] + "..."
                     if len(chunk.content) > 100
                     else chunk.content,
+                )
+        elif title:
+            # Title search
+            results = (
+                session.query(Transcript)
+                .filter(Transcript.title.ilike(f"%{query}%"))
+                .limit(limit)
+                .all()
+            )
+
+            table = Table(title="Title Search Results")
+            table.add_column("Episode", style="cyan")
+            table.add_column("Title", style="green")
+            table.add_column("Description", style="white")
+
+            for transcript in results:
+                table.add_row(
+                    str(transcript.episode_number),
+                    transcript.title,
+                    transcript.description[:100] + "..."
+                    if transcript.description and len(transcript.description) > 100
+                    else (transcript.description or ""),
                 )
         else:
             # Text search

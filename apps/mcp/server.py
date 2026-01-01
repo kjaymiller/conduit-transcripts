@@ -31,10 +31,10 @@ def search_transcripts(
     Returns formatted results suitable for LLM context.
     """
     results = actions.vector_search(query, limit, similarity_threshold)
-    
+
     if not results:
         return "No matching transcripts found."
-        
+
     output = [f"Found {len(results)} results for '{query}':\n"]
     for r in results:
         output.append(f"Episode {r.episode_number}: {r.title}")
@@ -42,7 +42,28 @@ def search_transcripts(
         output.append(f"Content: {r.content_snippet}")
         output.append(f"Similarity: {r.similarity_score}")
         output.append("---")
-    
+
+    return "\n".join(output)
+
+
+@mcp.tool()
+def search_titles(query: str) -> str:
+    """
+    Search transcripts by title.
+    Returns formatted results suitable for LLM context.
+    """
+    results = actions.title_search(query)
+
+    if not results:
+        return f"No transcripts found with title matching '{query}'."
+
+    output = [f"Found {len(results)} results for title '{query}':\n"]
+    for r in results:
+        output.append(f"Episode {r.episode_number}: {r.title}")
+        output.append(f"URL: {r.url}")
+        output.append(f"Description: {r.description}")
+        output.append("---")
+
     return "\n".join(output)
 
 
@@ -52,8 +73,8 @@ def get_episode_transcript(episode_number: int, podcast: str = "Conduit") -> str
     result = actions.get_episode_details(episode_number, podcast)
     if not result:
         return f"Episode {episode_number} not found."
-    
-    metadata = result['metadata']
+
+    metadata = result["metadata"]
     return (
         f"Title: {metadata.get('title')}\n"
         f"Date: {metadata.get('pub_date')}\n"

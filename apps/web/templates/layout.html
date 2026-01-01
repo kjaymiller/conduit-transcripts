@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Conduit Transcripts{% endblock %}</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --sidebar-width: 280px;
+            --header-height: 60px;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        header {
+            height: var(--header-height);
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--primary);
+        }
+
+        /* Layout */
+        .container {
+            display: flex;
+            flex: 1;
+            margin-top: var(--header-height);
+            max-width: 1400px;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Sidebar */
+        aside {
+            width: var(--sidebar-width);
+            background: var(--bg);
+            border-right: 1px solid var(--border);
+            height: calc(100vh - var(--header-height));
+            position: fixed;
+            overflow-y: auto;
+            padding: 1rem;
+            display: none; /* Hidden on mobile by default */
+        }
+        
+        @media (min-width: 1024px) {
+            aside {
+                display: block;
+            }
+            main {
+                margin-left: var(--sidebar-width);
+            }
+        }
+
+        .episode-list {
+            list-style: none;
+        }
+
+        .episode-list li {
+            margin-bottom: 0.5rem;
+        }
+
+        .episode-link {
+            display: block;
+            padding: 0.5rem;
+            border-radius: 4px;
+            text-decoration: none;
+            color: var(--text);
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .episode-link:hover {
+            background: #e2e8f0;
+        }
+        
+        .episode-link .meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: block;
+        }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            padding: 2rem;
+            width: 100%;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--card-bg);
+            border-top: 1px solid var(--border);
+            padding: 2rem;
+            margin-top: auto;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            z-index: 60; /* Above sidebar */
+        }
+        
+        @media (min-width: 1024px) {
+            footer {
+                margin-left: var(--sidebar-width);
+            }
+        }
+
+        /* Mobile Menu Toggle */
+        .menu-toggle {
+            display: block;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text);
+            margin-right: 1rem;
+        }
+
+        @media (min-width: 1024px) {
+            .menu-toggle {
+                display: none;
+            }
+        }
+        
+        /* Utility Classes */
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+        }
+
+        h1 {
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+        }
+        
+        /* Mobile Sidebar State */
+        body.menu-open aside {
+            display: block;
+            z-index: 100;
+            background: var(--card-bg);
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <header>
+        <div class="header-content">
+            <div style="display: flex; align-items: center;">
+                <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+                <a href="/" class="logo">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"></path><path d="M8.5 8.5v.01"></path><path d="M11.5 15.5v.01"></path><path d="M15.5 11.5v.01"></path></svg>
+                    Conduit Transcripts
+                </a>
+            </div>
+            <nav class="nav-links">
+                <a href="/">Search</a>
+                <a href="/stats">Stats</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <aside>
+            <div style="padding-bottom: 1rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem;">
+                <strong>Episodes</strong>
+            </div>
+            <ul id="sidebar-episode-list" class="episode-list">
+                <li style="color: var(--text-secondary); padding: 0.5rem;">Loading episodes...</li>
+            </ul>
+        </aside>
+
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Conduit Transcripts. All rights reserved.</p>
+        <p style="margin-top: 0.5rem;">
+            <a href="https://relay.fm/conduit" target="_blank" style="color: var(--primary);">Official Website</a>
+        </p>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        const menuToggle = document.querySelector('.menu-toggle');
+        const body = document.body;
+        
+        menuToggle.addEventListener('click', () => {
+            body.classList.toggle('menu-open');
+        });
+
+        // Load episodes for sidebar
+        async function loadEpisodes() {
+            try {
+                const response = await fetch('/episodes?limit=100');
+                const data = await response.json();
+                const list = document.getElementById('sidebar-episode-list');
+                
+                if (data.episodes && data.episodes.length > 0) {
+                    list.innerHTML = data.episodes.map(ep => `
+                        <li>
+                            <a href="#" class="episode-link" onclick="window.open('${ep.url}', '_blank')">
+                                <div>Episode ${ep.episode_number}: ${ep.title}</div>
+                                <span class="meta">${ep.pub_date || ''}</span>
+                            </a>
+                        </li>
+                    `).join('');
+                } else {
+                    list.innerHTML = '<li style="padding: 0.5rem;">No episodes found.</li>';
+                }
+            } catch (e) {
+                console.error('Failed to load episodes:', e);
+                document.getElementById('sidebar-episode-list').innerHTML = '<li style="color: red; padding: 0.5rem;">Failed to load episodes.</li>';
+            }
+        }
+        
+        loadEpisodes();
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

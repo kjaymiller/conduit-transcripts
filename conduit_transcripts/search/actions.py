@@ -167,6 +167,58 @@ def text_search(query: str, limit: int = 10) -> List[SearchResult]:
         raise
 
 
+def title_search(query: str, limit: int = 10) -> List[SearchResult]:
+    """Search transcripts by title."""
+    try:
+        logger.info(f"Title search query: '{query}' (limit={limit})")
+
+        vector_db = VectorDatabase()
+        session = vector_db.Session()
+
+        try:
+            # Perform title search using ILIKE for case-insensitive matching
+            results = (
+                session.query(Transcript)
+                .filter(Transcript.title.ilike(f"%{query}%"))
+                .limit(limit)
+                .all()
+            )
+
+            # Convert results to SearchResult objects
+            search_results = []
+            for transcript in results:
+                # Use description as content snippet since we don't have a chunk
+                content_snippet = transcript.description or ""
+                if len(content_snippet) > 500:
+                    content_snippet = content_snippet[:500] + "..."
+
+                search_results.append(
+                    SearchResult(
+                        episode_number=transcript.episode_number,
+                        podcast=str(transcript.podcast),
+                        title=transcript.title,
+                        description=transcript.description,
+                        url=transcript.url,
+                        pub_date=str(transcript.published_date)
+                        if transcript.published_date
+                        else None,
+                        content_snippet=content_snippet,
+                        similarity_score=None,
+                        chunk_id=None,
+                    )
+                )
+
+            logger.info(f"Found {len(search_results)} results")
+            return search_results
+
+        finally:
+            session.close()
+
+    except Exception as e:
+        logger.error(f"Title search error: {e}")
+        raise
+
+
 def get_episode_details(episode_number: int, podcast: str) -> Optional[Dict[str, Any]]:
     """Get full transcript for a specific episode."""
     try:
