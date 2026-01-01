@@ -34,6 +34,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       API_PORT: 8000
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      LLM_MODEL: ${LLM_MODEL:-llama3}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
     depends_on:
       postgres:
         condition: service_healthy
@@ -61,6 +63,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       API_PORT: 8000
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      LLM_MODEL: ${LLM_MODEL:-llama3}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
     depends_on:
       postgres:
         condition: service_healthy
