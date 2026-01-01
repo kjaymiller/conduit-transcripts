@@ -3,7 +3,7 @@
 import logging
 from typing import List, Optional, Dict, Any
 
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_ollama import OllamaEmbeddings
 
@@ -179,7 +179,12 @@ def title_search(query: str, limit: int = 10) -> List[SearchResult]:
             # Perform title search using ILIKE for case-insensitive matching
             results = (
                 session.query(Transcript)
-                .filter(Transcript.title.ilike(f"%{query}%"))
+                .filter(
+                    or_(
+                        Transcript.title.ilike(f"%{query}%"),
+                        Transcript.description.ilike(f"%{query}%"),
+                    )
+                )
                 .limit(limit)
                 .all()
             )

@@ -34,5 +34,34 @@ def test_title_search(MockVectorDatabase):
     assert results[0].episode_number == 1
     assert results[0].content_snippet == "A test description"
 
+
+@patch("conduit_transcripts.search.actions.VectorDatabase")
+def test_title_search_matches_description(MockVectorDatabase):
+    # Setup mock session and results
+    session = Mock()
+    MockVectorDatabase.return_value.Session.return_value = session
+
+    mock_transcript = Mock(spec=Transcript)
+    mock_transcript.episode_number = 2
+    mock_transcript.podcast = 1
+    mock_transcript.title = "Another Episode"
+    mock_transcript.description = "Contains the keyword here"
+    mock_transcript.url = "http://example.com/2"
+    mock_transcript.published_date = None
+
+    # Configure query return
+    query_mock = session.query.return_value
+    filter_mock = query_mock.filter.return_value
+    limit_mock = filter_mock.limit.return_value
+    limit_mock.all.return_value = [mock_transcript]
+
+    # Execute search for "keyword"
+    results = title_search("keyword")
+
+    # Verify
+    assert len(results) == 1
+    assert results[0].episode_number == 2
+    assert results[0].content_snippet == "Contains the keyword here"
+
     # Verify query
     session.query.assert_called_with(Transcript)
