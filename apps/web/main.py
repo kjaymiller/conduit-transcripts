@@ -5,8 +5,9 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 from sqlalchemy import text
 
 from conduit_transcripts.config import settings
@@ -17,6 +18,7 @@ from conduit_transcripts.models.search import (
     HealthResponse,
 )
 from conduit_transcripts.search import actions
+from conduit_transcripts.chat import rag
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -160,7 +162,55 @@ async def title_search(
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 
-@app.get("/episode/{episode_number}", response_model=dict)
+@app.get("/episode/{episode_number}", response_class=HTMLResponse)
+async def episode_page(
+    request: Request,
+    episode_number: int,
+    podcast_id: int = Query(1, alias="podcast", description="Podcast ID"),
+):
+    """Serve the episode detail page."""
+    try:
+        result = actions.get_episode_details(episode_number, podcast_id)
+        if not result:
+            raise HTTPException(
+                status_code=404, detail=f"Episode {episode_number} not found"
+            )
+
+        # Parse markdown content
+        import markdown
+
+        if result.get("content"):
+            result["content"] = markdown.markdown(
+                result["content"], extensions=["fenced_code", "tables", "nl2br"]
+            )
+
+        return templates.TemplateResponse(
+            "episode.html", {"request": request, "episode": result}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting episode page: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get episode: {str(e)}")
+
+
+class ChatRequest(BaseModel):
+    query: str
+
+
+@app.post("/api/chat/{episode_number}")
+async def chat_episode(
+    episode_number: int,
+    request: ChatRequest,
+):
+    """Chat with a specific episode."""
+    return StreamingResponse(
+        rag.generate_episode_response(request.query, episode_number),
+        media_type="text/plain",
+    )
+
+
+@app.get("/api/episode/{episode_number}", response_model=dict)
 async def get_episode(
     episode_number: int,
     podcast_id: int = Query(1, alias="podcast", description="Podcast ID"),

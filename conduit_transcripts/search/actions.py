@@ -37,11 +37,16 @@ def get_embedding_model():
 
 
 def vector_search(
-    query: str, limit: int = 10, similarity_threshold: float = 0.0
+    query: str,
+    limit: int = 10,
+    similarity_threshold: float = 0.0,
+    episode_number: Optional[int] = None,
 ) -> List[SearchResult]:
     """Search transcripts using vector similarity."""
     try:
-        logger.info(f"Vector search query: '{query}' (limit={limit})")
+        logger.info(
+            f"Vector search query: '{query}' (limit={limit}, episode={episode_number})"
+        )
 
         # Generate embedding for query
         embedding_model = get_embedding_model()
@@ -52,16 +57,20 @@ def vector_search(
         session = vector_db.Session()
 
         try:
+            # Build query
+            stmt = select(
+                VectorChunk,
+                VectorChunk.embedding.l2_distance(query_embedding).label("distance"),
+            )
+
+            if episode_number is not None:
+                stmt = stmt.filter(VectorChunk.episode_number == episode_number)
+
             # Perform vector similarity search using L2 distance
             results = session.execute(
-                select(
-                    VectorChunk,
-                    VectorChunk.embedding.l2_distance(query_embedding).label(
-                        "distance"
-                    ),
+                stmt.order_by(VectorChunk.embedding.l2_distance(query_embedding)).limit(
+                    limit
                 )
-                .order_by(VectorChunk.embedding.l2_distance(query_embedding))
-                .limit(limit)
             ).all()
 
             # Convert results to SearchResult objects

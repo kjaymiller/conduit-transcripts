@@ -190,9 +190,16 @@
                 html += `
                     <div class="episode-group">
                         <div class="episode-header">
-                            <a href="${group.url}" target="_blank" class="episode-title">
-                                Episode ${group.episode}: ${group.title}
-                            </a>
+                            <div style="flex: 1;">
+                                <a href="/episode/${group.episode}" class="episode-title">
+                                    Episode ${group.episode}: ${group.title}
+                                </a>
+                                {% if group.url and group.url != '#' %}
+                                <a href="${group.url}" target="_blank" style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 0.5rem; text-decoration: none;">
+                                    ↗
+                                </a>
+                                {% endif %}
+                            </div>
                             <span style="font-size: 0.85rem; color: var(--text-secondary);">
                                 ${group.matches.length} match${group.matches.length === 1 ? '' : 'es'}
                             </span>
