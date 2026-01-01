@@ -3,9 +3,10 @@
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 
 from conduit_transcripts.config import settings
@@ -27,6 +28,9 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Setup templates
+templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -38,15 +42,37 @@ app.add_middleware(
 
 
 @app.get("/", response_class=HTMLResponse)
-async def root():
+async def root(request: Request):
     """Serve the search UI."""
-    template_path = Path(__file__).parent / "templates" / "index.html"
-    if not template_path.exists():
-        return HTMLResponse(
-            content="<h1>Error: Template not found</h1>", status_code=500
-        )
+    return templates.TemplateResponse("index.html", {"request": request})
 
-    return HTMLResponse(content=template_path.read_text(encoding="utf-8"))
+
+@app.get("/stats", response_class=HTMLResponse)
+async def stats_page(request: Request):
+    """Serve the statistics page."""
+    return templates.TemplateResponse("stats.html", {"request": request})
+
+
+@app.get("/api/stats")
+async def get_stats():
+    """Get statistics about the transcripts."""
+    try:
+        vector_db = VectorDatabase()
+        session = vector_db.Session()
+
+        try:
+            total_episodes = session.query(Transcript).count()
+            total_chunks = session.query(VectorChunk).count()
+
+            return {
+                "total_episodes": total_episodes,
+                "total_chunks": total_chunks,
+            }
+        finally:
+            session.close()
+    except Exception as e:
+        logger.error(f"Error getting stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get stats: {str(e)}")
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -115,11 +141,17 @@ async def text_search(
 
 @app.get("/episode/{episode_number}", response_model=dict)
 async def get_episode(
-    episode_number: int, podcast: str = Query("Conduit", description="Podcast name")
+    episode_number: int,
+    podcast_id: int = Query(1, alias="podcast", description="Podcast ID"),
 ):
     """Get full transcript for a specific episode."""
     try:
-        result = actions.get_episode_details(episode_number, podcast)
+        # For now, we only support integer IDs.
+        # If the user passes "Conduit" via query param, FastAPI validation will fail
+        # unless we handle it. But let's assume the frontend sends IDs or defaults.
+        # To support legacy URLs, we might need more logic, but let's stick to int for now.
+
+        result = actions.get_episode_details(episode_number, podcast_id)
         if not result:
             raise HTTPException(
                 status_code=404, detail=f"Episode {episode_number} not found"
@@ -134,13 +166,15 @@ async def get_episode(
 
 @app.get("/episodes", response_model=dict)
 async def list_episodes(
-    podcast: str = Query("Conduit", description="Podcast name"),
+    podcast_id: int = Query(1, alias="podcast", description="Podcast ID"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of episodes"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
 ):
     """List all available episodes."""
     try:
-        logger.info(f"Listing episodes for {podcast} (limit={limit}, offset={offset})")
+        logger.info(
+            f"Listing episodes for podcast {podcast_id} (limit={limit}, offset={offset})"
+        )
 
         vector_db = VectorDatabase()
         session = vector_db.Session()
@@ -148,13 +182,15 @@ async def list_episodes(
         try:
             # Get total count
             total = (
-                session.query(Transcript).filter(Transcript.podcast == podcast).count()
+                session.query(Transcript)
+                .filter(Transcript.podcast == podcast_id)
+                .count()
             )
 
             # Get episodes
             transcripts = (
                 session.query(Transcript)
-                .filter(Transcript.podcast == podcast)
+                .filter(Transcript.podcast == podcast_id)
                 .order_by(Transcript.episode_number.desc())
                 .limit(limit)
                 .offset(offset)
@@ -175,7 +211,7 @@ async def list_episodes(
                 )
 
             return {
-                "podcast": podcast,
+                "podcast": str(podcast_id),
                 "total_episodes": total,
                 "episodes": episodes,
                 "limit": limit,
