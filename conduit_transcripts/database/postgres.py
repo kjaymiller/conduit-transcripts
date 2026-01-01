@@ -29,15 +29,15 @@ class VectorDatabase:
         """
         self.engine = create_engine(settings.postgres_uri)
 
-        # Create tables
-        if recreate_tables:
-            Base.metadata.drop_all(self.engine)
-        Base.metadata.create_all(self.engine)
-
         # Create pgvector extension
         with self.engine.connect() as conn:
             conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
             conn.commit()
+
+        # Create tables
+        if recreate_tables:
+            Base.metadata.drop_all(self.engine)
+        Base.metadata.create_all(self.engine)
 
         # Create session factory
         self.Session = sessionmaker(bind=self.engine)
