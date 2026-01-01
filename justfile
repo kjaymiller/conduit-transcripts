@@ -232,6 +232,18 @@ docker-restart:
 ingest:
     uv run conduit ingest
 
+# Ingest a single transcript file
+ingest-file FILE:
+    uv run conduit ingest {{FILE}}
+
+# Ingest files from a specific directory
+ingest-dir DIR:
+    uv run conduit ingest --dir {{DIR}}
+
+# Initialize database manually (enable extension, create tables)
+setup-db:
+    docker-compose exec -T postgres psql -U postgres -d postgres < infra/init-db.sql
+
 # Access PostgreSQL shell
 docker-psql:
     docker-compose exec postgres psql -U postgres -d postgres
