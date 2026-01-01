@@ -269,7 +269,7 @@
                 if (data.episodes && data.episodes.length > 0) {
                     list.innerHTML = data.episodes.map(ep => `
                         <li>
-                            <a href="#" class="episode-link" onclick="window.open('${ep.url}', '_blank')">
+                            <a href="/episode/${ep.episode_number}" class="episode-link">
                                 <div>Episode ${ep.episode_number}: ${ep.title}</div>
                                 <span class="meta">${ep.pub_date || ''}</span>
                             </a>
