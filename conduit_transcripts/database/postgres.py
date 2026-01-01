@@ -13,7 +13,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from conduit_transcripts.config import settings
-from conduit_transcripts.models import Base, Transcript, VectorChunk
+from conduit_transcripts.models import Base, Podcast, Transcript, VectorChunk
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +107,13 @@ class VectorDatabase:
         session = self.Session()
 
         try:
+            # Ensure podcast exists
+            podcast_obj = session.query(Podcast).get(podcast)
+            if not podcast_obj:
+                podcast_obj = Podcast(id=podcast, title=podcast)
+                session.add(podcast_obj)
+                session.flush()
+
             # Check if exists and update or insert
             transcript = session.query(Transcript).get((podcast, episode_number))
             if not transcript:

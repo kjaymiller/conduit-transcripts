@@ -3,6 +3,7 @@
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Column,
+    ForeignKey,
     ForeignKeyConstraint,
     Integer,
     Text,
@@ -20,12 +21,27 @@ from conduit_transcripts.config import settings
 Base = declarative_base()
 
 
+class Podcast(Base):
+    """Model for podcast metadata."""
+
+    __tablename__ = "podcasts"
+
+    id = Column(Text, primary_key=True)  # Slug-like ID, e.g. "Conduit"
+    title = Column(Text)
+    description = Column(Text)
+    feed_url = Column(Text)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    transcripts = relationship("Transcript", back_populates="podcast_rel")
+
+
 class Transcript(Base):
     """Model for transcript data."""
 
     __tablename__ = settings.POSTGRES_TABLE_TRANSCRIPTS
 
-    podcast = Column(Text, primary_key=True)
+    podcast = Column(Text, ForeignKey("podcasts.id"), primary_key=True)
     episode_number = Column(Integer, primary_key=True)
     meta = Column(JSONB)
     title = Column(Text)
@@ -42,6 +58,9 @@ class Transcript(Base):
     chunks = relationship(
         "VectorChunk", back_populates="transcript", cascade="all, delete-orphan"
     )
+
+    # Define relationship to podcast
+    podcast_rel = relationship("Podcast", back_populates="transcripts")
 
     def __repr__(self):
         return f"<Transcript(episode_number={self.episode_number})>"
