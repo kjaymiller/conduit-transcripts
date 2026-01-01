@@ -5,17 +5,36 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 
 -- Drop old tables if they exist (cleanup/simplification)
-DROP TABLE IF EXISTS transcript_vector;
-DROP TABLE IF EXISTS transcripts;
+DROP TABLE IF EXISTS search;
+DROP TABLE IF EXISTS transcriptions;
+DROP TABLE IF EXISTS podcasts;
+
+-- Create podcasts table
+CREATE TABLE IF NOT EXISTS podcasts (
+    id TEXT PRIMARY KEY,
+    title TEXT,
+    description TEXT,
+    feed_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default podcast "Conduit"
+INSERT INTO podcasts (id, title, description) VALUES ('Conduit', 'Conduit', 'Productivity podcast') ON CONFLICT DO NOTHING;
 
 -- Create transcriptions table
 CREATE TABLE IF NOT EXISTS transcriptions (
     podcast TEXT NOT NULL,
     episode_number INTEGER NOT NULL,
     meta JSONB,
+    title TEXT,
+    description TEXT,
+    published_date TIMESTAMP,
+    url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (podcast, episode_number)
+    PRIMARY KEY (podcast, episode_number),
+    FOREIGN KEY (podcast) REFERENCES podcasts(id)
 );
 
 -- Create search table (formerly transcript_vector)
@@ -54,3 +73,11 @@ CREATE TRIGGER update_transcriptions_updated_at
     BEFORE UPDATE ON transcriptions
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+-- Create trigger for podcasts table
+DROP TRIGGER IF EXISTS update_podcasts_updated_at ON podcasts;
+CREATE TRIGGER update_podcasts_updated_at
+    BEFORE UPDATE ON podcasts
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
