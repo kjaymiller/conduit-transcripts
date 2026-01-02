@@ -29,7 +29,7 @@ dependencies = [
   "langchain-huggingface>=0.0.1",
   "langchain-text-splitters>=0.0.1",
   "feedparser",
-  "slugify",
+  "python-slugify>=8.0.0",
   "sentence-transformers>=5.2.0",
   "langchain-ollama>=1.0.1",
   "mcp>=1.25.0",
