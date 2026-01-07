@@ -32,3 +32,4 @@ services:
 networks:
   traefik_default:
     external: true
+

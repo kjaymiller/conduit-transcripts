@@ -13,6 +13,7 @@ authors = [{ name = "Jay Miller", email = "kjaymiller@gmail.com" }]
 
 # Core dependencies
 dependencies = [
+  "openai-whisper>=20241126",
   "httpx>=0.24.0",
   "python-multipart",
   "typer>=0.9.0",
@@ -33,7 +34,6 @@ dependencies = [
   "sentence-transformers>=5.2.0",
   "langchain-ollama>=1.0.1",
   "mcp>=1.25.0",
-  "openai-whisper>=20230314",
 ]
 
 # Optional ML dependencies
@@ -76,4 +76,3 @@ python_files = "test_*.py"
 
 [tool.setuptools]
 packages = ["conduit_transcripts", "apps", "cli"]
-
