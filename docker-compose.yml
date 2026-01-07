@@ -45,8 +45,6 @@ services:
       - ./conduit_transcripts:/app/conduit_transcripts:ro
       - ./transcripts:/app/transcripts:rw
       - ./app/templates:/app/app/templates:ro
-    ports:
-      - "8000:8000"
     networks:
       - conduit-network
 
