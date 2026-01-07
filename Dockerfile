@@ -13,11 +13,8 @@ RUN apt-get update && apt-get install -y \
 COPY conduit_transcripts/ /app/conduit_transcripts/
 COPY conduit_transcripts/pyproject.toml /app/conduit_transcripts/
 
-# Install uv
-RUN pip install uv
-
 # Install conduit_transcripts in editable mode
-RUN cd /app/conduit_transcripts && pip install -e .
+RUN pip install -e /app/conduit_transcripts
 
 # Copy app code
 COPY app/ /app/app/
@@ -25,11 +22,8 @@ COPY cli/ /app/cli/
 COPY pyproject.toml ./
 COPY README.md ./
 
-# Set PROJECT_ROOT for local dependency reference
-ENV PROJECT_ROOT=/app
-
-# Install app dependencies
-RUN uv sync
+# Install app and its dependencies in editable mode
+RUN pip install -e /app
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser
