@@ -1,35 +1,21 @@
 services:
-  ingestion:
-    ports:
-      - "${INGESTION_PORT:-8001}:8000"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.conduit-ingestion.rule=Host(`${INGESTION_DOMAIN:-conduit.kjaymiller.dev}`)"
-      - "traefik.http.routers.conduit-ingestion.entrypoints=websecure"
-      - "traefik.http.routers.conduit-ingestion.tls=true"
-      - "traefik.http.routers.conduit-ingestion.tls.certresolver=letsencrypt"
-      - "traefik.http.services.conduit-ingestion.loadbalancer.server.port=8000"
-      - "traefik.docker.network=traefik_default"
+  app:
     networks:
       - conduit-network
       - traefik_default
-
-  mcp-server:
-    ports:
-      - "${MCP_PORT:-8000}:8000"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.conduit-mcp.rule=Host(`${MCP_DOMAIN:-conduit-mcp.localhost}`)"
-      - "traefik.http.routers.conduit-mcp.entrypoints=websecure"
-      - "traefik.http.routers.conduit-mcp.tls=true"
-      - "traefik.http.routers.conduit-mcp.tls.certresolver=letsencrypt"
-      - "traefik.http.services.conduit-mcp.loadbalancer.server.port=8000"
+      - "traefik.http.routers.conduit-app.rule=Host(`${SERVER_DOMAIN:-conduit.kjaymiller.dev}`)"
+      - "traefik.http.routers.conduit-app.entrypoints=websecure"
+      - "traefik.http.routers.conduit-app.tls=true"
+      - "traefik.http.routers.conduit-app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.conduit-app.loadbalancer.server.port=8000"
       - "traefik.docker.network=traefik_default"
-    networks:
-      - conduit-network
-      - traefik_default
+      - "kuma.app.group.name=Conduit Server"
+      - "kuma.app.http.name=Health Check"
+      - "kuma.app.http.parent_name=app"
+      - "kuma.app.http.url=https://conduit.kjaymiller.dev/health"
 
 networks:
   traefik_default:
     external: true
-

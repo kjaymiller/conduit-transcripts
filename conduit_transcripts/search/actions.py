@@ -3,7 +3,7 @@
 import logging
 from typing import List, Optional, Dict, Any
 
-from sqlalchemy import select, or_
+from sqlalchemy import select, or_, text
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_ollama import OllamaEmbeddings
 

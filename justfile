@@ -69,7 +69,7 @@ transcribe-file FILE OUTPUT:
 
 # Data Ingestion Commands
 
-# Load all transcript files into both PostgreSQL and OpenSearch
+# Load all transcript files into PostgreSQL
 upload:
     uv run python -m cli.main ingest
 
@@ -77,22 +77,8 @@ upload:
 upload-files FILES:
     uv run python -m cli.main ingest {{FILES}}
 
-# Load transcripts with OpenSearch reindexing
+# Load transcripts with table reindexing
 upload-reindex:
-    uv run python -m cli.main ingest --reindex
-
-# Load transcripts to PostgreSQL only
-upload-pg-only:
-    uv run python -m cli.main ingest --pg-only
-
-# Load transcripts to OpenSearch only
-upload-os-only:
-    uv run python -m cli.main ingest --os-only
-
-# Index Management
-
-# Create or recreate OpenSearch index (destructive - use with caution)
-index-recreate:
     uv run python -m cli.main ingest --reindex
 
 # Code Quality Commands

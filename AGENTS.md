@@ -9,6 +9,7 @@
 - Dependency-aware: Track blockers and relationships between issues
 - Git-friendly: Auto-syncs to JSONL for version control
 - Agent-optimized: JSON output, ready work detection, discovered-from links
+- Single source of truth for task state (GitHub/Gitea for external visibility)
 - Prevents duplicate tracking systems and confusion
 
 ### Quick Start
@@ -20,9 +21,9 @@ bd ready --json
 
 **Create new issues:**
 ```bash
-bd create "Issue title" -t bug|feature|task -p 0-4 --json
-bd create "Issue title" -p 1 --deps discovered-from:bd-123 --json
-bd create "Subtask" --parent <epic-id> --json  # Hierarchical subtask (gets ID like epic-id.1)
+bd create "Issue title" -t bug|feature|task -p 0-4 --description "Detailed description" --json
+bd create "Issue title" -p 1 --deps discovered-from:bd-123 --description "Why this exists and what needs to be done" --json
+bd create "Subtask" --parent <epic-id> --description "Subtask details" --json  # Hierarchical subtask (gets ID like epic-id.1)
 ```
 
 **Claim and update:**
@@ -57,10 +58,12 @@ bd close bd-42 --reason "Completed" --json
 1. **Check ready work**: `bd ready` shows unblocked issues
 2. **Claim your task**: `bd update <id> --status in_progress`
 3. **Work on it**: Implement, test, document
-4. **Discover new work?** Create linked issue:
-   - `bd create "Found bug" -p 1 --deps discovered-from:<parent-id>`
-5. **Complete**: `bd close <id> --reason "Done"`
-6. **Commit together**: Always commit the `.beads/issues.jsonl` file together with the code changes so issue state stays in sync with code state
+4. **Need to plan/design first?** Create planning issue:
+   - `bd create "Design: Feature name" -t task -p 1 --description "Architecture, implementation steps, considerations" --json`
+5. **Discover new work?** Create linked issue with description:
+   - `bd create "Found bug" -p 1 --deps discovered-from:<parent-id> --description "Bug details and impact"`
+6. **Complete**: `bd close <id> --reason "Done"`
+7. **Commit together**: Always commit the `.beads/issues.jsonl` file together with the code changes so issue state stays in sync with code state
 
 ### Auto-Sync
 
@@ -94,33 +97,110 @@ Add to MCP config (e.g., `~/.config/claude/config.json`):
 
 Then use `mcp__beads__*` functions instead of CLI commands.
 
-### Managing AI-Generated Planning Documents
+### Planning and Design Work
 
-AI assistants often create planning and design documents during development:
-- PLAN.md, IMPLEMENTATION.md, ARCHITECTURE.md
-- DESIGN.md, CODEBASE_SUMMARY.md, INTEGRATION_PLAN.md
-- TESTING_GUIDE.md, TECHNICAL_DESIGN.md, and similar files
+AI assistants often need to create planning and design documents during development:
+- Architecture decisions, implementation plans, testing strategies
+- Research findings, design documents, integration plans
 
-**Best Practice: Use a dedicated directory for these ephemeral files**
+**Best Practice: Use beads for ALL planning and design work**
 
 **Recommended approach:**
-- Create a `history/` directory in the project root
-- Store ALL AI-generated planning/design docs in `history/`
-- Keep the repository root clean and focused on permanent project files
-- Only access `history/` when explicitly asked to review past planning
-
-**Example .gitignore entry (optional):**
-```
-# AI planning documents (ephemeral)
-history/
-```
+- Create planning/design issues in beads with detailed descriptions
+- Use `--description` to document the full plan, architecture, or research findings
+- Link related issues with dependencies (e.g., `--deps discovered-from:bd-123`)
+- Create epics for large features with multiple subtasks
+- Store detailed design information in issue descriptions, not separate files
 
 **Benefits:**
-- ✅ Clean repository root
-- ✅ Clear separation between ephemeral and permanent documentation
-- ✅ Easy to exclude from version control if desired
-- ✅ Preserves planning history for archeological research
-- ✅ Reduces noise when browsing the project
+- ✅ Single source of truth for all work
+- ✅ Dependency tracking ensures correct work order
+- ✅ Planning stays in sync with code state
+- ✅ Easy to track what's planned, in-progress, or completed
+- ✅ Clean repository without planning clutter
+- ✅ Git-friendly with automatic version control
+
+**Example: Creating a design issue**
+```bash
+bd create "Design: User authentication flow" -t task -p 1 \
+  --description "
+# Overview
+Design a secure authentication flow for the application
+
+# Architecture
+1. Use JWT tokens
+2. Implement refresh token rotation
+3. Add rate limiting
+
+# Implementation Steps
+- Add dependencies (PyJWT, bcrypt)
+- Create auth endpoints (/login, /refresh, /logout)
+- Implement middleware for protected routes
+- Add unit tests for auth logic
+" \
+  --json
+```
+
+### GitHub/Gitea Integration
+
+For external visibility and collaboration, create corresponding GitHub/Gitea issues that align with beads tasks.
+
+**When to create GitHub/Gitea issues:**
+- Work that requires external review or collaboration
+- Features or bugs reported by contributors
+- Epics that need project-level tracking
+- Work that needs milestone or release planning
+
+**Creating aligned issues:**
+1. Create the beads issue first (source of truth)
+2. Create a GitHub/Gitea issue that references the beads ID
+3. Use consistent titles and descriptions
+4. Link related issues appropriately
+
+**Example workflow:**
+```bash
+# 1. Create beads issue (source of truth)
+bd create "Add user authentication" -t feature -p 1 \
+  --description "
+Implement OAuth2 authentication with GitHub provider.
+
+# Tasks
+- Add OAuth2 dependencies
+- Configure GitHub OAuth app
+- Create login endpoint
+- Add user session management
+" \
+  --json
+
+# 2. Create GitHub issue with reference
+gh issue create \
+  --title "Add user authentication [bd-42]" \
+  --body "
+This issue tracks beads task bd-42
+
+# Description
+Implement OAuth2 authentication with GitHub provider.
+
+## Tasks
+- Add OAuth2 dependencies
+- Configure GitHub OAuth app
+- Create login endpoint
+- Add user session management
+"
+```
+
+**Using GitHub Projects:**
+- Create projects for epics or milestones
+- Use project boards to track progress visually
+- Add beads ID to issue titles for cross-referencing
+- Project status mirrors beads issue status
+
+**Synchronization guidelines:**
+- Beads is the source of truth for task state
+- Update GitHub/Gitea issues when beads status changes
+- Reference beads ID in external issue titles: `[bd-XX]`
+- Create GitHub issues for high-priority or collaborative work
+- Skip GitHub issues for small internal tasks
 
 ### CLI Help
 
@@ -129,15 +209,19 @@ For example: `bd create --help` shows `--parent`, `--deps`, `--assignee`, etc.
 
 ### Important Rules
 
-- ✅ Use bd for ALL task tracking
+- ✅ Use bd for ALL internal task tracking (source of truth)
 - ✅ Always use `--json` flag for programmatic use
+- ✅ **ALWAYS provide `--description` when creating issues** - provides context for future work
 - ✅ Link discovered work with `discovered-from` dependencies
 - ✅ Check `bd ready` before asking "what should I work on?"
-- ✅ Store AI planning docs in `history/` directory
+- ✅ Use beads for ALL planning and design work (create issues with detailed descriptions)
+- ✅ Create GitHub/Gitea issues aligned with beads for external visibility
+- ✅ Reference beads ID in external issue titles: `[bd-XX]`
 - ✅ Run `bd <cmd> --help` to discover available flags
 - ❌ Do NOT create markdown TODO lists
-- ❌ Do NOT use external issue trackers
-- ❌ Do NOT duplicate tracking systems
-- ❌ Do NOT clutter repo root with planning documents
+- ❌ Do NOT create separate planning/design files in repo root
+- ❌ Do NOT create GitHub/Gitea issues without corresponding beads issue
+- ❌ Do NOT duplicate tracking systems (keep beads as source of truth)
+- ❌ Do NOT create issues without descriptions
 
 For more details, see README.md and QUICKSTART.md.

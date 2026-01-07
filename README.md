@@ -30,11 +30,38 @@ direnv allow
 source .envrc
 ```
 
-The `.envrc` file should contain connection strings for OpenSearch, PostgreSQL, and other configuration.
+The `.envrc` file should contain connection strings for PostgreSQL and other configuration.
 
 ## Usage
 
-The project provides a unified CLI tool called `conduit` for all operations.
+The project provides multiple interfaces for accessing and managing transcripts:
+
+- **CLI Tool** - `conduit` command for local operations
+- **REST API** - FastAPI server for programmatic access
+- **MCP Server** - Model Context Protocol server for Claude integration
+
+### Docker Setup
+
+Start all services with Docker Compose:
+
+```bash
+# Start PostgreSQL and API server
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop services
+docker compose down
+```
+
+The API will be available at `http://localhost:8000` with interactive docs at `/docs`.
+
+### CLI Usage (via Docker)
+
+```bash
+docker compose run --rm app python -m cli.main [command] [options]
+```
 
 ### Transcription
 
@@ -42,42 +69,31 @@ Transcribe episodes from the Conduit website using OpenAI Whisper:
 
 ```bash
 # Transcribe the latest episode
-uv run conduit transcribe <episode_number>
+docker compose run --rm app python -m cli.main transcribe <episode_number>
 
 # Transcribe and ingest (default)
-uv run conduit transcribe <episode_number> --ingest
-
-# Transcribe without ingestion
-uv run conduit transcribe <episode_number> --no-ingest
+docker compose run --rm app python -m cli.main transcribe <episode_number>
 
 # Use specific model size (tiny, base, small, medium, large)
-uv run conduit transcribe <episode_number> --model medium
-
-# Or set TRANSCRIPTION_MODEL environment variable to set default model size
-export TRANSCRIPTION_MODEL=medium
-uv run conduit transcribe <episode_number>
+docker compose run --rm app python -m cli.main transcribe <episode_number> --model medium
 
 # Configure the LLM model for RAG (Retrieval Augmented Generation)
-export LLM_MODEL=llama3
+docker compose run --rm app -e LLM_MODEL=llama3 python -m cli.main transcribe <episode_number>
 ```
 
 ### Data Ingestion
 
-Load transcripts into PostgreSQL and/or OpenSearch:
+Load transcripts into PostgreSQL:
 
 ```bash
 # Ingest all files in transcripts directory
-uv run conduit ingest
+docker compose run --rm app python -m cli.main ingest
 
 # Ingest specific file
-uv run conduit ingest --file transcripts/episode1.md
+docker compose run --rm app python -m cli.main ingest --file transcripts/episode1.md
 
-# Recreate tables/indexes before ingestion
-uv run conduit ingest --reindex
-
-# Ingest only to specific database
-uv run conduit ingest --pg-only
-uv run conduit ingest --os-only
+# Recreate tables before ingestion
+docker compose run --rm app python -m cli.main ingest --reindex
 ```
 
 ### Search
@@ -86,30 +102,31 @@ Search through ingested transcripts:
 
 ```bash
 # Text search (default)
-uv run conduit search "search term"
+docker compose run --rm app python -m cli.main search "search term"
 
 # Vector semantic search
-uv run conduit search "search phrase" --vector
+docker compose run --rm app python -m cli.main search "search phrase" --vector
 ```
 
 ### Management
 
 ```bash
 # Check episode status
-uv run conduit status <episode_number>
+docker compose run --rm app python -m cli.main status <episode_number>
 
 # List recent episodes
-uv run conduit list
+docker compose run --rm app python -m cli.main list
 ```
 
 ## Project Structure
 
-- `apps/` - Web applications
-  - `transcribe/` - Transcription and ingestion API
-  - `mcp/` - Model Context Protocol server for RAG
+- `app/` - FastAPI application
+  - `api/` - REST API endpoints (search, episodes, health)
+  - `mcp/` - MCP Server for Claude integration
+  - `main.py` - Main FastAPI application
 - `cli/` - Command-line interface
-- `conduit_transcripts/` - Shared library code
-  - `database/` - Database operations (PostgreSQL, OpenSearch)
+- `src/conduit_transcripts/` - Shared library code
+  - `database/` - Database operations (PostgreSQL)
   - `models/` - SQLAlchemy models
   - `transcription/` - Transcription logic (Whisper, MLX)
   - `utils/` - Shared utilities
@@ -127,13 +144,14 @@ uv run conduit list
 
 ## Technology Stack
 
-- Python 3.12+
+- Python 3.13+
 - OpenAI Whisper (transcription)
 - LangChain (text processing)
 - PostgreSQL with pgvector extension
-- OpenSearch (vector search)
 - SQLAlchemy (ORM)
-- Typer (CLI framework)
+- Click (CLI framework)
+- FastAPI (REST API)
+- MCP (Model Context Protocol)
 
 ## Usage and License
 

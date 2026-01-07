@@ -24,11 +24,6 @@ class Settings:
     )
     POSTGRES_TABLE_VECTORS: str = os.getenv("POSTGRES_TABLE_VECTORS", "search")
 
-    # OpenSearch configuration
-    OPENSEARCH_HOST: str = os.getenv("OPENSEARCH_HOST", "localhost")
-    OPENSEARCH_PORT: str = os.getenv("OPENSEARCH_PORT", "9200")
-    OPENSEARCH_INDEX: str = os.getenv("OPENSEARCH_INDEX", "transcripts")
-
     # Service URIs
     POSTGRES_SERVICE_URI: Optional[str] = os.getenv("POSTGRES_SERVICE_URI")
     AIVEN_POSTGRES_SERVICE_URI: Optional[str] = os.getenv("AIVEN_POSTGRES_SERVICE_URI")
@@ -70,11 +65,6 @@ class Settings:
             return uri
 
         return f"postgresql+psycopg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-
-    @property
-    def opensearch_uri(self) -> str:
-        """Get OpenSearch connection URI."""
-        return f"http://{self.OPENSEARCH_HOST}:{self.OPENSEARCH_PORT}"
 
 
 @lru_cache

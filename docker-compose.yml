@@ -18,74 +18,36 @@ services:
     networks:
       - conduit-network
 
-  # Web UI for transcript search
-  web:
-    # Transcript ingestion service
-  ingestion:
+  # FastAPI app (also contains CLI)
+  app:
     build:
       context: .
-      dockerfile: Dockerfile.web
-    container_name: conduit-web
+      dockerfile: Dockerfile
+    container_name: conduit-api
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB_NAME:-transcripts}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      API_PORT: 8000
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       LLM_MODEL: ${LLM_MODEL:-llama3}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-ollama}
+      EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-cpu}
+      TRANSCRIPTION_MODEL: ${TRANSCRIPTION_MODEL:-base}
     depends_on:
       postgres:
         condition: service_healthy
-    ports:
-      - "${WEB_PORT:-8000}:8000"
     volumes:
+      - ./app:/app/app:ro
+      - ./cli:/app/cli:ro
       - ./conduit_transcripts:/app/conduit_transcripts:ro
-      - ./apps:/app/apps:ro
-      - ./transcripts:/app/transcripts
+      - ./transcripts:/app/transcripts:rw
+    ports:
+      - "8000:8000"
     networks:
       - conduit-network
-    command: ["uv", "run", "python", "-m", "apps.web.run"]
-  #
-  mcp-server:
-    build:
-      context: .
-      dockerfile: Dockerfile.mcp
-    container_name: conduit-mcp
-    environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB_NAME:-transcripts}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      API_PORT: 8000
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      LLM_MODEL: ${LLM_MODEL:-llama3}
-      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "${MCP_PORT:-8001}:8000"
-    volumes:
-      - ./conduit_transcripts:/app/conduit_transcripts:ro
-      - ./apps:/app/apps:ro
-      - ./transcripts:/app/transcripts
-    networks:
-      - conduit-network
-    command:
-      [
-        "python",
-        "-m",
-        "uvicorn",
-        "src.mcp_server:app",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "8000",
-      ]
 
 volumes:
   postgres_data:

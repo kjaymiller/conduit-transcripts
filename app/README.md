@@ -167,67 +167,76 @@ curl "http://localhost:8000/episodes?limit=20&offset=0"
 
 ## Running the Server
 
-### Local Development
-
-1. **Install dependencies:**
-   ```bash
-   uv sync
-   ```
-
-2. **Set up environment variables:**
-   ```bash
-   export POSTGRES_HOST=localhost
-   export POSTGRES_PORT=5432
-   export POSTGRES_DB=transcripts
-   export POSTGRES_USER=postgres
-   export POSTGRES_PASSWORD=your_password
-   ```
-
-   Or use your existing Aiven connection:
-   ```bash
-   source .envrc  # Loads AIVEN_POSTGRES_SERVICE_URI
-   ```
-
-3. **Run the server:**
-   ```bash
-   uv run python apps/mcp/main.py
-   ```
-
-   Or with uvicorn directly:
-   ```bash
-   uv run uvicorn apps.mcp.server:app --host 0.0.0.0 --port 8000 --reload
-   ```
-
-4. **Access the API:**
-   - Interactive docs: http://localhost:8000/docs
-   - ReDoc: http://localhost:8000/redoc
-   - OpenAPI spec: http://localhost:8000/openapi.json
-
 ### Docker Deployment
 
 Using the Docker Compose setup:
 
 ```bash
-# Start all services (database, ingestion, MCP server)
-just docker-up
+# Start all services (database, API)
+docker compose up -d
 
 # View logs
-just docker-logs
+docker compose logs -f
 
 # Access the server
 curl http://localhost:8000/health
 ```
+
+### Running in MCP Mode
+
+To run the server as an MCP server:
+
+```bash
+# Start in MCP mode
+docker compose run --rm -e CONDUIT_MODE=mcp app
+```
+
+### Local Development
+
+1. **Install dependencies:**
+    ```bash
+    uv sync
+    ```
+
+2. **Set up environment variables:**
+    ```bash
+    export POSTGRES_HOST=localhost
+    export POSTGRES_PORT=5432
+    export POSTGRES_DB=transcripts
+    export POSTGRES_USER=postgres
+    export POSTGRES_PASSWORD=your_password
+    ```
+
+    Or use your existing Aiven connection:
+    ```bash
+    source .envrc  # Loads AIVEN_POSTGRES_SERVICE_URI
+    ```
+
+3. **Run the MCP server:**
+    ```bash
+    python -m app.mcp.server
+    ```
+
+4. **Access the API:**
+    - Interactive docs: http://localhost:8000/docs
+    - ReDoc: http://localhost:8000/redoc
+    - OpenAPI spec: http://localhost:8000/openapi.json
 
 ## Environment Variables
 
 The server supports flexible configuration for different deployment scenarios:
 
 ### Docker Environment
-- `POSTGRES_HOST` - Database host (default: "localhost")
+- `CONDUIT_MODE` - Server mode: "api" (default), "mcp", or "cli"
+- `POSTGRES_HOST` - Database host (default: "postgres")
 - `POSTGRES_PORT` - Database port (default: "5432")
 - `POSTGRES_DB` - Database name (default: "transcripts")
 - `POSTGRES_USER` - Database user (default: "postgres")
 - `POSTGRES_PASSWORD` - Database password (default: "postgres")
+- `EMBEDDING_PROVIDER` - Embedding provider: "ollama" (default) or "huggingface"
+- `EMBEDDING_MODEL` - Embedding model name (default: "nomic-embed-text")
+- `OLLAMA_BASE_URL` - Ollama API URL (default: "http://localhost:11434")
+- `LLM_MODEL` - LLM model name (default: "llama3")
 
 ### Local Development
 - `AIVEN_POSTGRES_SERVICE_URI` - Full Aiven connection string (overrides individual settings)
@@ -289,7 +298,7 @@ The server logs all queries and errors:
 
 ```bash
 # View logs in Docker
-just docker-logs-service mcp-server
+docker compose logs -f
 
 # Local development logs show:
 # - Query text and parameters
@@ -314,10 +323,12 @@ The API returns standard HTTP status codes:
 
 ```bash
 # Run all tests
-just test
+pytest
 
 # Test specific endpoint
 curl http://localhost:8000/health
+curl "http://localhost:8000/api/v1/episodes?limit=5"
+curl "http://localhost:8000/api/v1/search/text?query=productivity"
 ```
 
 ### Adding New Endpoints
@@ -331,21 +342,21 @@ curl http://localhost:8000/health
 
 ```bash
 # Format code
-just fmt
+ruff format .
 
 # Check linting
-just lint
+ruff check .
 
 # Fix linting issues
-just lint-fix
+ruff check --fix .
 ```
 
 ## Related Issues
 
-- **MCP Server Implementation**: conduit-transcripts-ikr
-- **Database Setup**: conduit-transcripts-h6e
-- **Ingestion Pipeline**: conduit-transcripts-0mt
-- **Docker Infrastructure**: conduit-transcripts-1h3
+- **Clean up and restructure project architecture**: conduit-transcripts-1nc
+- **Create app/ directory with FastAPI**: conduit-transcripts-1nc.1
+- **Implement REST API endpoints**: conduit-transcripts-1nc.2
+- **Implement MCP Server**: conduit-transcripts-1nc.3
 
 ## Integration with OpenCode
 
@@ -354,26 +365,26 @@ This project includes an `opencode.json` configuration file to easily connect Op
 To use the MCP server with OpenCode:
 
 1. **Ensure the server is running**:
-   - Docker: `just docker-up` (runs on port 8000)
-   - Local: `uv run python apps/mcp/main.py` (runs on port 8000)
+    - Docker: `docker compose up -d` (runs on port 8000)
+    - Local: `python -m app.mcp.server` (runs in MCP mode)
 
 2. **Verify configuration**:
-   The `opencode.json` file in the root directory should verify the server URL:
+    The `opencode.json` file in the root directory should verify the server URL:
 
-   ```json
-   {
-     "mcp": {
-       "conduit-transcriptions": {
-         "type": "remote",
-         "url": "http://localhost:8000",
-         "enabled": true
-       }
-     }
-   }
-   ```
+    ```json
+    {
+      "mcp": {
+        "conduit-transcriptions": {
+          "type": "remote",
+          "url": "http://localhost:8000",
+          "enabled": true
+        }
+      }
+    }
+    ```
 
 3. **Restart OpenCode**:
-   After starting the server, restart OpenCode or reload the configuration to establish the connection.
+    After starting the server, restart OpenCode or reload the configuration to establish the connection.
 
 
 ## License

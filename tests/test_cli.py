@@ -1,7 +1,7 @@
 import pytest
-from typer.testing import CliRunner
+from click.testing import CliRunner
 from unittest.mock import Mock, patch
-from cli.main import app
+from cli.main import cli
 from conduit_transcripts.models import Transcript
 
 runner = CliRunner()
@@ -24,7 +24,7 @@ def test_cli_title_search(MockVectorDatabase):
     limit_mock.all.return_value = [mock_transcript]
 
     # Run command
-    result = runner.invoke(app, ["search", "Test", "--title"])
+    result = runner.invoke(cli, ["search", "Test", "--title"])
 
     # Verify
     assert result.exit_code == 0

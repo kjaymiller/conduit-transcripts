@@ -2,31 +2,34 @@
 
 import logging
 import pathlib
+import sys
 import typing
 
-import typer
+import click
 from rich.console import Console
 from rich.table import Table
 from sqlalchemy import select
 
 # Imports moved to functions for lazy loading
 
-
 # Silence noisy loggers
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 
-app = typer.Typer(help="Conduit Transcripts CLI")
 console = Console()
 
 
-@app.command()
-def search(
-    query: str = typer.Argument(..., help="Search query"),
-    vector: bool = typer.Option(False, "--vector", "-v", help="Use vector search"),
-    title: bool = typer.Option(False, "--title", "-t", help="Search by title"),
-    limit: int = typer.Option(10, "--limit", "-l", help="Maximum results"),
-):
+@click.group(help="Conduit Transcripts CLI")
+def cli():
+    pass
+
+
+@cli.command()
+@click.argument("query")
+@click.option("--vector", "-v", is_flag=True, help="Use vector search")
+@click.option("--title", "-t", is_flag=True, help="Search by title")
+@click.option("--limit", "-l", default=10, help="Maximum results")
+def search(query: str, vector: bool, title: bool, limit: int):
     """Search transcripts."""
     try:
         from conduit_transcripts.config import settings
@@ -131,13 +134,12 @@ def search(
 
     except Exception as e:
         console.print(f"[red]Error searching: {e}[/red]")
-        raise typer.Exit(1)
+        sys.exit(1)
 
 
-@app.command()
-def status(
-    episode_number: int = typer.Argument(..., help="Episode number"),
-):
+@cli.command()
+@click.argument("episode_number", type=int)
+def status(episode_number: int):
     """Check episode status."""
     try:
         from conduit_transcripts.database.postgres import VectorDatabase
@@ -173,26 +175,23 @@ def status(
 
     except Exception as e:
         console.print(f"[red]Error checking status: {e}[/red]")
-        raise typer.Exit(1)
+        sys.exit(1)
 
 
-@app.command()
+@cli.command()
+@click.argument("episodes", nargs=-1, required=True)
+@click.option(
+    "--model", "-m", default="base", help="Model size", envvar="TRANSCRIPTION_MODEL"
+)
+@click.option(
+    "--prefer-mlx/--no-mlx",
+    default=False,
+    help="Prefer MLX",
+    envvar="TRANSCRIBE_PREFER_MLX",
+)
+@click.option("--ingest/--no-ingest", default=True, help="Ingest after transcription")
 def transcribe(
-    episodes: typing.List[str] = typer.Argument(
-        ..., help="Episode number(s) to transcribe (e.g. 100, 100-105, 'latest')"
-    ),
-    model: str = typer.Option(
-        "base", "--model", "-m", help="Model size", envvar="TRANSCRIPTION_MODEL"
-    ),
-    prefer_mlx: bool = typer.Option(
-        False,
-        "--prefer-mlx/--no-mlx",
-        help="Prefer MLX",
-        envvar="TRANSCRIBE_PREFER_MLX",
-    ),
-    ingest: bool = typer.Option(
-        True, "--ingest/--no-ingest", help="Ingest after transcription"
-    ),
+    episodes: typing.Tuple[str, ...], model: str, prefer_mlx: bool, ingest: bool
 ):
     """Transcribe an episode."""
     try:
@@ -278,81 +277,59 @@ def transcribe(
                 else:
                     console.print(f"[red]✗ Failed to ingest to PostgreSQL[/red]")
 
-                # Try OpenSearch
-                try:
-                    from conduit_transcripts.database.opensearch import (
-                        OpenSearchDatabase,
-                    )
-
-                    os_db = OpenSearchDatabase()
-                    os_success = os_db.process_frontmatter_post(post)
-                    if os_success:
-                        console.print(
-                            f"[green]✓ Successfully ingested to OpenSearch[/green]"
-                        )
-                    else:
-                        console.print(f"[red]✗ Failed to ingest to OpenSearch[/red]")
-                except ImportError:
-                    console.print("[yellow]OpenSearch support not available[/yellow]")
-                except Exception as e:
-                    console.print(f"[red]Error indexing to OpenSearch: {e}[/red]")
-
     except Exception as e:
         console.print(f"[red]Error transcribing: {e}[/red]")
-        raise typer.Exit(1)
+        sys.exit(1)
 
 
-@app.command(name="transcribe-file")
+@cli.command(name="transcribe-file")
+@click.argument("file_path", type=click.Path(exists=True))
+@click.option(
+    "--model", "-m", default="base", help="Model size", envvar="TRANSCRIPTION_MODEL"
+)
+@click.option(
+    "--prefer-mlx/--no-mlx",
+    default=False,
+    help="Prefer MLX",
+    envvar="TRANSCRIBE_PREFER_MLX",
+)
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
 def transcribe_file(
-    file_path: pathlib.Path = typer.Argument(
-        ..., help="Path to audio file", exists=True
-    ),
-    model: str = typer.Option(
-        "base", "--model", "-m", help="Model size", envvar="TRANSCRIPTION_MODEL"
-    ),
-    prefer_mlx: bool = typer.Option(
-        False,
-        "--prefer-mlx/--no-mlx",
-        help="Prefer MLX",
-        envvar="TRANSCRIBE_PREFER_MLX",
-    ),
-    output: pathlib.Path = typer.Option(
-        None, "--output", "-o", help="Output file path"
-    ),
+    file_path: str, model: str, prefer_mlx: bool, output: typing.Optional[str]
 ):
     """Transcribe a local audio file."""
     try:
+        file_path_obj = pathlib.Path(file_path)
         console.print(f"[blue]Transcribing {file_path} with {model} model...[/blue]")
         from conduit_transcripts.transcription import HybridTranscriber
 
         transcriber = HybridTranscriber(model=model, prefer_mlx=prefer_mlx)
-        transcription = transcriber.transcribe(file_path)
+        transcription = transcriber.transcribe(file_path_obj)
 
         if output:
-            output_file = output
+            output_file = pathlib.Path(output)
         else:
-            output_file = file_path.with_suffix(".txt")
+            output_file = file_path_obj.with_suffix(".txt")
 
         output_file.write_text(transcription)
         console.print(f"[green]Transcription saved to: {output_file}[/green]")
 
     except Exception as e:
         console.print(f"[red]Error transcribing file: {e}[/red]")
-        raise typer.Exit(1)
+        sys.exit(1)
 
 
-@app.command()
-def ingest(
-    files: typing.Optional[typing.List[pathlib.Path]] = typer.Argument(
-        None, help="Specific file(s) to ingest"
-    ),
-    directory: pathlib.Path = typer.Option(
-        pathlib.Path("transcripts"), "--dir", help="Directory to ingest"
-    ),
-    reindex: bool = typer.Option(False, "--reindex", help="Recreate tables/indexes"),
-    pg_only: bool = typer.Option(False, "--pg-only", help="Ingest only to PostgreSQL"),
-    os_only: bool = typer.Option(False, "--os-only", help="Ingest only to OpenSearch"),
-):
+@cli.command()
+@click.argument("files", nargs=-1, type=click.Path())
+@click.option(
+    "--dir",
+    "directory",
+    default="transcripts",
+    type=click.Path(),
+    help="Directory to ingest",
+)
+@click.option("--reindex", is_flag=True, help="Recreate tables")
+def ingest(files: typing.Tuple[str, ...], directory: str, reindex: bool):
     """Ingest transcript files."""
     try:
         import frontmatter
@@ -360,41 +337,20 @@ def ingest(
         # Gather files
         files_to_process = []
         if files:
-            files_to_process.extend(files)
+            files_to_process.extend([pathlib.Path(f) for f in files])
         else:
-            if directory.exists():
-                files_to_process.extend(directory.glob("*.md"))
+            directory_path = pathlib.Path(directory)
+            if directory_path.exists():
+                files_to_process.extend(directory_path.glob("*.md"))
 
         if not files_to_process:
             console.print("[yellow]No files found to ingest[/yellow]")
-            raise typer.Exit(0)
+            sys.exit(0)
 
-        pg_db = None
-        os_db = None
+        console.print("[blue]Initializing PostgreSQL database...[/blue]")
+        from conduit_transcripts.database.postgres import VectorDatabase
 
-        if not os_only:
-            console.print("[blue]Initializing PostgreSQL database...[/blue]")
-            from conduit_transcripts.database.postgres import VectorDatabase
-
-            pg_db = VectorDatabase(recreate_tables=reindex)
-
-        if not pg_only:
-            try:
-                from conduit_transcripts.database.opensearch import OpenSearchDatabase
-
-                os_db = OpenSearchDatabase()
-                if reindex:
-                    console.print("[blue]Recreating OpenSearch index...[/blue]")
-                    os_db.create_index()
-            except ImportError:
-                console.print(
-                    "[yellow]OpenSearch support not available. Skipping OpenSearch indexing.[/yellow]"
-                )
-                if not pg_db:
-                    console.print(
-                        "[red]No databases available to write to. Exiting.[/red]"
-                    )
-                    raise typer.Exit(1)
+        pg_db = VectorDatabase(recreate_tables=reindex)
 
         with console.status(
             f"[bold green]Ingesting {len(files_to_process)} files..."
@@ -411,21 +367,11 @@ def ingest(
 
                     file_success = True
 
-                    if pg_db:
-                        if not pg_db.process_frontmatter_post(post):
-                            file_success = False
-                            console.print(
-                                f"[red]Failed to ingest {file_path.name} to PostgreSQL[/red]"
-                            )
-
-                    if os_db:
-                        if not os_db.process_frontmatter_post(post):
-                            # Don't mark as full failure if only OS fails, unless OS-only
-                            if os_only:
-                                file_success = False
-                            console.print(
-                                f"[red]Failed to ingest {file_path.name} to OpenSearch[/red]"
-                            )
+                    if not pg_db.process_frontmatter_post(post):
+                        file_success = False
+                        console.print(
+                            f"[red]Failed to ingest {file_path.name} to PostgreSQL[/red]"
+                        )
 
                     if file_success:
                         success_count += 1
@@ -443,13 +389,12 @@ def ingest(
 
     except Exception as e:
         console.print(f"[red]Error during ingestion: {e}[/red]")
-        raise typer.Exit(1)
+        sys.exit(1)
 
 
-@app.command()
-def list(
-    limit: int = typer.Option(20, "--limit", "-l", help="Maximum episodes to show"),
-):
+@cli.command()
+@click.option("--limit", "-l", default=20, help="Maximum episodes to show")
+def list(limit: int):
     """List episodes."""
     try:
         from conduit_transcripts.database.postgres import VectorDatabase
@@ -485,8 +430,8 @@ def list(
 
     except Exception as e:
         console.print(f"[red]Error listing episodes: {e}[/red]")
-        raise typer.Exit(1)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    app()
+    cli()
