@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+
+{% block title %}Episodes - Conduit Transcripts{% endblock %}
+
+{% block content %}
+<div>
+    <h1 class="text-4xl font-bold text-white mb-8">All Episodes</h1>
+
+    {% if episodes %}
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {% for episode in episodes %}
+        <a href="/episode/{{ episode.episode_number }}" class="bg-gray-800 border border-gray-700 rounded-lg p-6 hover:border-gray-600 transition duration-200 block">
+            <h2 class="text-xl font-semibold text-blue-400 mb-2">
+                Episode {{ episode.episode_number }}
+            </h2>
+            {% if episode.title %}
+            <h3 class="text-lg text-white mb-3">{{ episode.title }}</h3>
+            {% endif %}
+            {% if episode.description %}
+            <p class="text-gray-400 text-sm line-clamp-3">{{ episode.description }}</p>
+            {% endif %}
+            {% if episode.published_date %}
+            <p class="text-gray-500 text-xs mt-4">
+                {{ episode.published_date.strftime('%B %d, %Y') if episode.published_date else 'Unknown' }}
+            </p>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <p class="text-gray-400">No episodes found.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

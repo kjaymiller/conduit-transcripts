@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+
+{% block title %}Search Transcripts - Conduit Transcripts{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <h1 class="text-4xl font-bold text-white mb-8 text-center">Search Transcripts</h1>
+
+    <form action="/search" method="GET" class="space-y-6">
+        <div>
+            <label for="query" class="block text-sm font-medium text-gray-300 mb-2">Search Query</label>
+            <input
+                type="text"
+                name="query"
+                id="query"
+                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter your search query..."
+                required
+            >
+        </div>
+
+        <div class="flex items-center space-x-6">
+            <label class="flex items-center">
+                <input type="radio" name="search_type" value="text" checked class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500">
+                <span class="ml-2 text-gray-300">Text Search</span>
+            </label>
+            <label class="flex items-center">
+                <input type="radio" name="search_type" value="vector" class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500">
+                <span class="ml-2 text-gray-300">Vector Search</span>
+            </label>
+            <label class="flex items-center">
+                <input type="radio" name="search_type" value="title" class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500">
+                <span class="ml-2 text-gray-300">Title Search</span>
+            </label>
+        </div>
+
+        <button
+            type="submit"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
+        >
+            Search
+        </button>
+    </form>
+
+    {% if results %}
+    <div class="mt-12">
+        <h2 class="text-2xl font-semibold text-white mb-6">{{ results|length }} Results Found</h2>
+        <div class="space-y-4">
+            {% for result in results %}
+            <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 hover:border-gray-600 transition duration-200">
+                <a href="/episode/{{ result.episode_number }}" class="block">
+                    <h3 class="text-xl font-semibold text-blue-400 mb-2">
+                        Episode {{ result.episode_number }}
+                    </h3>
+                    {% if result.title %}
+                    <p class="text-gray-300 mb-3">{{ result.title }}</p>
+                    {% endif %}
+                    <p class="text-gray-400 line-clamp-3">
+                        {% if result.content %}
+                        {{ result.content[:300] }}...
+                        {% elif result.description %}
+                        {{ result.description[:300] }}...
+                        {% endif %}
+                    </p>
+                    {% if result.score %}
+                    <p class="text-green-400 text-sm mt-2">Score: {{ "%.3f"|format(result.score) }}</p>
+                    {% endif %}
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
