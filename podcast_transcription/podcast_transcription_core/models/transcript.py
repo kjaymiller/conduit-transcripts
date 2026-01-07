@@ -16,7 +16,7 @@ from sqlalchemy.orm import declarative_base, mapped_column, relationship
 from sqlalchemy.schema import PrimaryKeyConstraint
 from sqlalchemy.sql import func
 
-from conduit_transcripts.config import settings
+from ..config import settings
 
 Base = declarative_base()
 

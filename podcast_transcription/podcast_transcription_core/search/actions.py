@@ -7,10 +7,10 @@ from sqlalchemy import select, or_, text
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_ollama import OllamaEmbeddings
 
-from conduit_transcripts.config import settings
-from conduit_transcripts.database.postgres import VectorDatabase
-from conduit_transcripts.models import Transcript, VectorChunk
-from conduit_transcripts.models.search import SearchResult
+from ..config import settings
+from ..database.postgres import VectorDatabase
+from ..models import Transcript, VectorChunk
+from ..models.search import SearchResult
 
 logger = logging.getLogger(__name__)
 

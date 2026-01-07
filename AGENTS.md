@@ -4,6 +4,14 @@
 
 **IMPORTANT**: This project uses **bd (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
 
+**CRITICAL**: Before starting ANY task, ALWAYS check beads issues for context:
+```bash
+bd list --json           # See all issues
+bd ready --json          # Check for unblocked issues
+bd show <issue-id>       # Get details on specific issue
+```
+This ensures you understand what's already planned, discovered, or in progress related to the work.
+
 ### Why bd?
 
 - Dependency-aware: Track blockers and relationships between issues
@@ -55,15 +63,16 @@ bd close bd-42 --reason "Completed" --json
 
 ### Workflow for AI Agents
 
-1. **Check ready work**: `bd ready` shows unblocked issues
-2. **Claim your task**: `bd update <id> --status in_progress`
-3. **Work on it**: Implement, test, document
-4. **Need to plan/design first?** Create planning issue:
+1. **Check beads for context**: Always run `bd list --json` to understand existing work, and `bd show <issue-id>` for relevant context before starting
+2. **Check ready work**: `bd ready` shows unblocked issues
+3. **Claim your task**: `bd update <id> --status in_progress`
+4. **Work on it**: Implement, test, document
+5. **Need to plan/design first?** Create planning issue:
    - `bd create "Design: Feature name" -t task -p 1 --description "Architecture, implementation steps, considerations" --json`
-5. **Discover new work?** Create linked issue with description:
+6. **Discover new work?** Create linked issue with description:
    - `bd create "Found bug" -p 1 --deps discovered-from:<parent-id> --description "Bug details and impact"`
-6. **Complete**: `bd close <id> --reason "Done"`
-7. **Commit together**: Always commit the `.beads/issues.jsonl` file together with the code changes so issue state stays in sync with code state
+7. **Complete**: `bd close <id> --reason "Done"`
+8. **Commit together**: Always commit the `.beads/issues.jsonl` file together with the code changes so issue state stays in sync with code state
 
 ### Auto-Sync
 

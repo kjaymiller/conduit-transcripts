@@ -1,7 +1,7 @@
 """Logging utilities."""
 
 import logging
-from conduit_transcripts.config import settings
+from ..config import settings
 
 
 def setup_logging() -> logging.Logger:

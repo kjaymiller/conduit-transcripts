@@ -3,10 +3,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "conduit-transcripts-core"
+name = "podcast-transcription-core"
 version = "0.1.0"
-description = "Core library for Conduit Transcripts - transcription, embedding, and RAG capabilities"
-readme = "README.md"
+description = "Core library for Podcast Transcription - transcription, embedding, and RAG capabilities"
 requires-python = ">=3.13"
 license = "MIT"
 authors = [{ name = "Jay Miller", email = "kjaymiller@gmail.com" }]
@@ -31,6 +30,13 @@ dependencies = [
   "mcp>=1.25.0",
 ]
 
+[tool.setuptools]
+py-modules = ["podcast_transcription"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["podcast_transcription_core*"]
+
 [project.urls]
 Homepage = "https://github.com/kjaymiller/conduit-transcripts"
 Repository = "https://github.com/kjaymiller/conduit-transcripts"
@@ -46,6 +52,3 @@ select = ["E", "F", "W"]
 [tool.ruff.format]
 quote-style = "double"
 line-ending = "auto"
-
-[tool.setuptools]
-packages = ["conduit_transcripts"]

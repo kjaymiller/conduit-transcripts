@@ -125,7 +125,7 @@ docker compose run --rm app python -m cli.main list
   - `mcp/` - MCP Server for Claude integration
   - `main.py` - Main FastAPI application
 - `cli/` - Command-line interface
-- `src/conduit_transcripts/` - Shared library code
+- `podcast_transcription/` - Shared library code
   - `database/` - Database operations (PostgreSQL)
   - `models/` - SQLAlchemy models
   - `transcription/` - Transcription logic (Whisper, MLX)

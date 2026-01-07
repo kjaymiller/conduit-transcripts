@@ -6,11 +6,12 @@ from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Enum as Sq
 from sqlalchemy.orm import relationship
 import enum
 
-from conduit_transcripts.models.transcript import Base
+from .transcript import Base
 
 
 class TaskStatus(str, enum.Enum):
     """Status of an ingestion task."""
+
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
@@ -19,7 +20,7 @@ class TaskStatus(str, enum.Enum):
 
 class IngestionJob(Base):
     """Model for an ingestion job."""
-    
+
     __tablename__ = "ingestion_jobs"
 
     job_id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -28,7 +29,9 @@ class IngestionJob(Base):
     completed_at = Column(DateTime, nullable=True)
 
     # Relationship to files
-    files = relationship("IngestionFile", back_populates="job", cascade="all, delete-orphan")
+    files = relationship(
+        "IngestionFile", back_populates="job", cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<IngestionJob(job_id={self.job_id}, status={self.status})>"
@@ -36,7 +39,7 @@ class IngestionJob(Base):
 
 class IngestionFile(Base):
     """Model for a file in an ingestion job."""
-    
+
     __tablename__ = "ingestion_files"
 
     id = Column(Integer, primary_key=True)

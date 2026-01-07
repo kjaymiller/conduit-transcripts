@@ -2,12 +2,12 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import Mock, patch
 from apps.web.main import app
-from conduit_transcripts.models import Transcript
+from podcast_transcription.models import Transcript
 
 client = TestClient(app)
 
 
-@patch("conduit_transcripts.search.actions.VectorDatabase")
+@patch("podcast_transcription.search.actions.VectorDatabase")
 def test_web_title_search(MockVectorDatabase):
     # Setup mock
     session = Mock()

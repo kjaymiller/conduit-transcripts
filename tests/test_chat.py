@@ -1,12 +1,12 @@
 import pytest
 from unittest.mock import Mock, patch, AsyncMock
-from conduit_transcripts.chat import rag
-from conduit_transcripts.models.search import SearchResult
+from podcast_transcription.chat import rag
+from podcast_transcription.models.search import SearchResult
 
 
 @pytest.mark.asyncio
-@patch("conduit_transcripts.chat.rag.actions.vector_search")
-@patch("conduit_transcripts.chat.rag.ChatOllama")
+@patch("podcast_transcription.chat.rag.actions.vector_search")
+@patch("podcast_transcription.chat.rag.ChatOllama")
 async def test_generate_episode_response(MockChatOllama, mock_vector_search):
     # Setup mock vector search
     mock_vector_search.return_value = [
@@ -48,7 +48,7 @@ async def test_generate_episode_response(MockChatOllama, mock_vector_search):
 
 
 @pytest.mark.asyncio
-@patch("conduit_transcripts.chat.rag.actions.vector_search")
+@patch("podcast_transcription.chat.rag.actions.vector_search")
 async def test_generate_episode_response_no_results(mock_vector_search):
     mock_vector_search.return_value = []
 

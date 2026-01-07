@@ -9,36 +9,31 @@ RUN apt-get update && apt-get install -y \
   curl \
   && rm -rf /var/lib/apt/lists/*
 
-# Copy conduit_transcripts module first
-COPY conduit_transcripts/ /app/conduit_transcripts/
-COPY conduit_transcripts/pyproject.toml /app/conduit_transcripts/
+# Copy podcast_transcription module first
+COPY podcast_transcription/ /app/podcast_transcription/
+COPY podcast_transcription/pyproject.toml /app/podcast_transcription/
 
 # Install uv
 RUN pip install uv
 
-# Install conduit_transcripts in editable mode using uv
-RUN uv pip install -e /app/conduit_transcripts
 
 # Copy app code
 COPY app/ /app/app/
 COPY cli/ /app/cli/
 COPY pyproject.toml ./
 COPY README.md ./
+COPY uv.lock .
+
 
 # Set PROJECT_ROOT for local dependency reference
 ENV PROJECT_ROOT=/app
 
 # Install app and its dependencies using uv
-RUN uv pip install -e /app
-
-# Create non-root user
-RUN useradd -m -u 1000 appuser
-RUN chown -R appuser:appuser /app
-USER appuser
+# This will install both the main app and the podcast_transcription workspace member
+RUN uv sync --frozen
 
 # Set environment variables
-ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
 # Run the FastAPI server
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

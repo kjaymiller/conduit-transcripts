@@ -7,8 +7,8 @@ from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-from conduit_transcripts.config import settings
-from conduit_transcripts.search import actions
+from ..config import settings
+from ..search import actions
 
 logger = logging.getLogger(__name__)
 

@@ -12,8 +12,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-from conduit_transcripts.config import settings
-from conduit_transcripts.models import Base, Podcast, Transcript, VectorChunk
+from ..config import settings
+from ..models import Base, Podcast, Transcript, VectorChunk
 
 logger = logging.getLogger(__name__)
 

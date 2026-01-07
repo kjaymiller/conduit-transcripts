@@ -19,8 +19,8 @@ async def home(request: Request):
 
 @app.get("/episodes", response_class=HTMLResponse)
 async def episodes_list(request: Request, limit: int = 100):
-    from conduit_transcripts.database.postgres import VectorDatabase
-    from conduit_transcripts.models import Transcript
+    from podcast_transcription_core.database.postgres import VectorDatabase
+    from podcast_transcription_core.models import Transcript
 
     db = VectorDatabase()
     session = db.Session()
@@ -41,8 +41,8 @@ async def episodes_list(request: Request, limit: int = 100):
 
 @app.get("/episode/{episode_number}", response_class=HTMLResponse)
 async def episode_detail(request: Request, episode_number: int):
-    from conduit_transcripts.database.postgres import VectorDatabase
-    from conduit_transcripts.models import Transcript, VectorChunk
+    from podcast_transcription_core.database.postgres import VectorDatabase
+    from podcast_transcription_core.models import Transcript, VectorChunk
 
     db = VectorDatabase()
     session = db.Session()
@@ -77,9 +77,9 @@ async def search(
     search_type: str = "text",
     limit: int = 20,
 ):
-    from conduit_transcripts.database.postgres import VectorDatabase
-    from conduit_transcripts.models import Transcript, VectorChunk
-    from conduit_transcripts.config import settings
+    from podcast_transcription_core.database.postgres import VectorDatabase
+    from podcast_transcription_core.models import Transcript, VectorChunk
+    from podcast_transcription_core.config import settings
 
     db = VectorDatabase()
     session = db.Session()
@@ -166,7 +166,7 @@ async def search(
 @app.get("/health")
 async def health_check():
     try:
-        from conduit_transcripts.database.postgres import VectorDatabase
+        from podcast_transcription_core.database.postgres import VectorDatabase
 
         db = VectorDatabase()
         session = db.Session()

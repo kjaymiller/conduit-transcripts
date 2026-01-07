@@ -1,9 +1,9 @@
 from mcp.server.fastmcp import FastMCP
 from sqlalchemy import select
 
-from conduit_transcripts.database.postgres import VectorDatabase
-from conduit_transcripts.config import settings
-from conduit_transcripts.models import VectorChunk, Transcript
+from podcast_transcription_core.database.postgres import VectorDatabase
+from podcast_transcription_core.config import settings
+from podcast_transcription_core.models import VectorChunk, Transcript
 
 mcp = FastMCP("Conduit Transcripts Server")
 

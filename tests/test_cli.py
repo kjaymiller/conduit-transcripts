@@ -2,12 +2,12 @@ import pytest
 from click.testing import CliRunner
 from unittest.mock import Mock, patch
 from cli.main import cli
-from conduit_transcripts.models import Transcript
+from podcast_transcription.models import Transcript
 
 runner = CliRunner()
 
 
-@patch("conduit_transcripts.database.postgres.VectorDatabase")
+@patch("podcast_transcription.database.postgres.VectorDatabase")
 def test_cli_title_search(MockVectorDatabase):
     # Setup mock
     session = Mock()

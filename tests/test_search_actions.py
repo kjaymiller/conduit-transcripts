@@ -1,10 +1,10 @@
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-from conduit_transcripts.search.actions import title_search
-from conduit_transcripts.models import Transcript
+from podcast_transcription.search.actions import title_search
+from podcast_transcription.models import Transcript
 
 
-@patch("conduit_transcripts.search.actions.VectorDatabase")
+@patch("podcast_transcription.search.actions.VectorDatabase")
 def test_title_search(MockVectorDatabase):
     # Setup mock session and results
     session = Mock()
@@ -35,7 +35,7 @@ def test_title_search(MockVectorDatabase):
     assert results[0].content_snippet == "A test description"
 
 
-@patch("conduit_transcripts.search.actions.VectorDatabase")
+@patch("podcast_transcription.search.actions.VectorDatabase")
 def test_title_search_matches_description(MockVectorDatabase):
     # Setup mock session and results
     session = Mock()

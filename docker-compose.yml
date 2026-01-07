@@ -42,7 +42,7 @@ services:
     volumes:
       - ./app:/app/app:ro
       - ./cli:/app/cli:ro
-      - ./conduit_transcripts:/app/conduit_transcripts:ro
+      - ./podcast_transcription:/app/podcast_transcription:rw
       - ./transcripts:/app/transcripts:rw
       - ./app/templates:/app/app/templates:ro
     networks:
