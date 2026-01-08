@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Query, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from typing import Optional
 
 from podcast_transcription_core.database.postgres import VectorDatabase
 from podcast_transcription_core.config import settings
 from podcast_transcription_core.models import VectorChunk, Transcript
+from podcast_transcription_core.chat.rag import generate_episode_response
 
 from .models import (
     SearchResponse,
@@ -13,6 +15,7 @@ from .models import (
     SearchResult,
     EpisodeListItem,
     EpisodeMetadata,
+    ChatRequest,
 )
 
 router = APIRouter()
@@ -289,3 +292,15 @@ async def list_episodes(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error listing episodes: {str(e)}")
+
+
+@router.post("/chat/{episode_number}")
+async def chat_episode(
+    episode_number: int,
+    request: ChatRequest,
+):
+    """Chat with a specific episode using RAG."""
+    return StreamingResponse(
+        generate_episode_response(request.query, episode_number),
+        media_type="text/plain",
+    )

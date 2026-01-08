@@ -55,3 +55,7 @@ class EpisodesResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     database: str
+
+
+class ChatRequest(BaseModel):
+    query: str = Field(..., description="User's question")
