@@ -37,15 +37,20 @@
     </div>
 
     {% if transcript %}
-    <div class="bg-gray-800 border border-gray-700 rounded-lg p-8" id="transcript-container">
+    <div class="bg-gray-800 border border-gray-700 rounded-lg p-8" id="transcript-container" data-status="{{ episode.processing_status }}">
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-semibold text-white">Transcript</h3>
-            <button id="edit-transcript-btn" class="text-blue-400 hover:text-blue-300 text-sm flex items-center">
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-                Edit
-            </button>
+            <div class="flex items-center space-x-3">
+                <span id="processing-badge" class="hidden px-2 py-1 text-xs font-semibold text-yellow-900 bg-yellow-200 rounded-full animate-pulse">
+                    Processing Update...
+                </span>
+                <button id="edit-transcript-btn" class="text-blue-400 hover:text-blue-300 text-sm flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    </svg>
+                    Edit
+                </button>
+            </div>
         </div>
         
         <div id="transcript-view" class="prose prose-invert max-w-none">
@@ -162,6 +167,7 @@
         }
 
         // Transcript Editing Logic
+        const container = document.getElementById('transcript-container');
         const editBtn = document.getElementById('edit-transcript-btn');
         const cancelBtn = document.getElementById('cancel-edit-btn');
         const saveBtn = document.getElementById('save-transcript-btn');
@@ -169,6 +175,33 @@
         const transcriptEdit = document.getElementById('transcript-edit');
         const transcriptTextarea = document.getElementById('transcript-textarea');
         const saveSpinner = document.getElementById('save-spinner');
+        const processingBadge = document.getElementById('processing-badge');
+        
+        // Initial state check
+        const initialStatus = container ? container.dataset.status : 'completed';
+        if (initialStatus === 'processing') {
+            if (editBtn) editBtn.classList.add('hidden');
+            if (processingBadge) processingBadge.classList.remove('hidden');
+            // Poll for updates
+            startPolling();
+        }
+
+        function startPolling() {
+            const pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/v1/episode/${episodeNumber}`);
+                    if (!response.ok) return;
+                    
+                    const data = await response.json();
+                    if (data.processing_status === 'completed' || data.processing_status === 'error') {
+                        clearInterval(pollInterval);
+                        window.location.reload();
+                    }
+                } catch (e) {
+                    console.error("Polling error", e);
+                }
+            }, 2000);
+        }
 
         if (editBtn) {
             editBtn.addEventListener('click', () => {
@@ -204,9 +237,15 @@
                     if (!response.ok) {
                         throw new Error('Failed to update transcript');
                     }
-
-                    // Reload page to show updated content and new chunks
-                    window.location.reload();
+                    
+                    // Show processing state immediately
+                    transcriptView.classList.remove('hidden');
+                    transcriptEdit.classList.add('hidden');
+                    processingBadge.classList.remove('hidden');
+                    editBtn.classList.add('hidden');
+                    
+                    // Start polling
+                    startPolling();
 
                 } catch (error) {
                     alert('Error updating transcript: ' + error.message);

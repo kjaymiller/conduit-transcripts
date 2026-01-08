@@ -62,6 +62,35 @@ class VectorDatabase:
                 encode_kwargs={"normalize_embeddings": False},
             )
 
+    def set_transcript_status(
+        self, podcast_id: int, episode_number: int, status: str
+    ) -> bool:
+        """Set the processing status of a transcript.
+
+        Args:
+            podcast_id: The ID of the podcast.
+            episode_number: The episode number.
+            status: The status to set (e.g., 'processing', 'completed', 'error').
+
+        Returns:
+            True if successful, False otherwise.
+        """
+        session = self.Session()
+        try:
+            transcript = session.query(Transcript).get((podcast_id, episode_number))
+            if not transcript:
+                return False
+
+            transcript.processing_status = status
+            session.commit()
+            return True
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error setting transcript status: {e}")
+            return False
+        finally:
+            session.close()
+
     def update_transcript_content(
         self, podcast_id: int, episode_number: int, new_content: str
     ) -> bool:
@@ -106,12 +135,21 @@ class VectorDatabase:
                     )
                     session.add(chunk)
 
+            # Set status to completed
+            transcript.processing_status = "completed"
+
             session.commit()
             logger.info(f"Updated transcript {episode_number} with {len(texts)} chunks")
             return True
         except Exception as e:
             session.rollback()
             logger.error(f"Error updating transcript: {e}")
+            # Try to set status to error in a new transaction if possible, or just log it
+            try:
+                transcript.processing_status = "error"
+                session.commit()
+            except:
+                pass
             return False
         finally:
             session.close()

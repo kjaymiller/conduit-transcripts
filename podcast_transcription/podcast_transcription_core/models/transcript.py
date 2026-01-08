@@ -49,6 +49,9 @@ class Transcript(Base):
     description = Column(Text)
     published_date = Column(DateTime)
     url = Column(Text)
+    processing_status = Column(
+        Text, default="completed"
+    )  # completed, processing, error
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

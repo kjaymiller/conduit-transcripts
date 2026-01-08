@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, BackgroundTasks, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from typing import Optional
@@ -22,24 +22,50 @@ from .models import (
 router = APIRouter()
 
 
-@router.put("/episode/{episode_number}/transcript", response_model=EpisodeResponse)
+def run_transcript_update(episode_number: int, content: str):
+    """Background task to update transcript content."""
+    db = VectorDatabase()
+    # Assume podcast ID 1 for Conduit
+    db.update_transcript_content(1, episode_number, content)
+
+
+@router.put(
+    "/episode/{episode_number}/transcript",
+    response_model=EpisodeResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def update_episode_transcript(
     episode_number: int,
     update: TranscriptUpdate,
+    background_tasks: BackgroundTasks,
     podcast: str = Query("Conduit", description="Podcast name"),
 ):
     """Update transcript content for a specific episode."""
     try:
         db = VectorDatabase()
 
-        # We assume podcast ID 1 for Conduit for now, matching the rest of the code
-        success = db.update_transcript_content(1, episode_number, update.content)
+        # Set status to processing immediately
+        success = db.set_transcript_status(1, episode_number, "processing")
 
         if not success:
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to update transcript for episode {episode_number}",
+                detail=f"Failed to initiate update for episode {episode_number}",
             )
+
+        # Add background task
+        background_tasks.add_task(run_transcript_update, episode_number, update.content)
+
+        # Return the episode with processing status
+        # We need to get the episode again to return the response
+        return await get_episode(episode_number, podcast)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error updating transcript: {str(e)}"
+        )
 
         # Return the updated episode
         return await get_episode(episode_number, podcast)
@@ -247,6 +273,7 @@ async def get_episode(
             metadata=metadata,
             content=content,
             chunks_count=chunks_count,
+            processing_status=transcript.processing_status or "completed",
         )
     except HTTPException:
         raise

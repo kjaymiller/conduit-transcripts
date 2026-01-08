@@ -34,6 +34,7 @@ class EpisodeResponse(BaseModel):
     metadata: EpisodeMetadata
     content: str
     chunks_count: int
+    processing_status: str = "completed"
 
 
 class EpisodeListItem(BaseModel):
