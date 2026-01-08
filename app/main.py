@@ -81,12 +81,14 @@ async def episodes_list(
 async def episode_detail(request: Request, episode_number: int):
     from podcast_transcription_core.database.postgres import VectorDatabase
     from podcast_transcription_core.models import Transcript, VectorChunk
+    from sqlalchemy.orm import joinedload
 
     db = VectorDatabase()
     session = db.Session()
 
     transcript = (
         session.query(Transcript)
+        .options(joinedload(Transcript.chunks))
         .filter(Transcript.episode_number == episode_number)
         .first()
     )
