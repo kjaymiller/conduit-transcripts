@@ -3,7 +3,7 @@
   "mcp": {
     "conduit-transcriptions": {
       "type": "remote",
-      "url": "http://conduit.kjaymiller.dev/mcp/sse",
+      "url": "https://conduit.kjaymiller.dev/mcp/sse",
       "enabled": true
     }
   }
