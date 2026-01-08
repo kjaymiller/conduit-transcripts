@@ -108,6 +108,64 @@ docker compose run --rm app python -m cli.main search "search term"
 docker compose run --rm app python -m cli.main search "search phrase" --vector
 ```
 
+### MCP Server Usage
+
+The project includes a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that allows AI assistants (like Claude) to directly query the transcript database.
+
+#### Configuration
+
+Add the server to your MCP client configuration (e.g., `claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "conduit": {
+      "command": "docker",
+      "args": [
+        "compose",
+        "run",
+        "--rm",
+        "app",
+        "python",
+        "-m",
+        "app.mcp.server"
+      ]
+    }
+  }
+}
+```
+
+Or if connecting to a running instance (e.g. via SSE):
+
+```json
+{
+  "mcpServers": {
+    "conduit": {
+        "url": "https://conduit.kjaymiller.dev/mcp/sse",
+        "transport": "sse"
+    }
+  }
+}
+```
+
+#### Available Tools
+
+The MCP server provides the following tools:
+
+- **`search_transcripts`**: Search through transcripts using keyword or vector search.
+  - `query` (string): The search text.
+  - `limit` (int, optional): Max results (default 10).
+  - `use_vector` (bool, optional): Use semantic vector search (default True).
+  - `episode_number` (int, optional): Filter by episode number.
+
+- **`get_episode`**: Retrieve full content and metadata for an episode.
+  - `episode_number` (int): The episode number to retrieve.
+
+- **`list_episodes`**: List available episodes with metadata.
+  - `limit` (int, optional): Max results (default 20).
+  - `start_date` (string, optional): Filter by start date (YYYY-MM-DD).
+  - `end_date` (string, optional): Filter by end date (YYYY-MM-DD).
+
 ### Management
 
 ```bash
