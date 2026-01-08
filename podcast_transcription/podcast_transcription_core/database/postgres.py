@@ -154,6 +154,58 @@ class VectorDatabase:
         finally:
             session.close()
 
+    def get_podcast(self, podcast_id: int) -> Optional[Podcast]:
+        """Get a podcast by ID.
+
+        Args:
+            podcast_id: The ID of the podcast.
+
+        Returns:
+            The Podcast object if found, None otherwise.
+        """
+        session = self.Session()
+        try:
+            return session.query(Podcast).get(podcast_id)
+        finally:
+            session.close()
+
+    def update_podcast_feed_url(self, podcast_id: int, feed_url: str) -> bool:
+        """Update the RSS feed URL for a podcast.
+
+        Args:
+            podcast_id: The ID of the podcast.
+            feed_url: The new RSS feed URL.
+
+        Returns:
+            True if successful, False otherwise.
+        """
+        session = self.Session()
+        try:
+            podcast = session.query(Podcast).get(podcast_id)
+            if not podcast:
+                # Create if not exists (assuming ID 1 for Conduit mostly)
+                if podcast_id == 1:
+                    podcast = Podcast(
+                        id=podcast_id,
+                        slug="conduit",
+                        title="Conduit",
+                        feed_url=feed_url,
+                    )
+                    session.add(podcast)
+                else:
+                    return False
+            else:
+                podcast.feed_url = feed_url
+
+            session.commit()
+            return True
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error updating podcast feed URL: {e}")
+            return False
+        finally:
+            session.close()
+
     def process_frontmatter_post(self, post: frontmatter.Post) -> bool:
         """Process a frontmatter post and save to database.
 

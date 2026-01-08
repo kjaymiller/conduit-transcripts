@@ -30,7 +30,7 @@ class Podcast(Base):
     slug = Column(Text, unique=True, nullable=False)
     title = Column(Text)
     description = Column(Text)
-    feed_url = Column(Text)
+    feed_url = Column(Text)  # Already exists here, good
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

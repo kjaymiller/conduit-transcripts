@@ -39,13 +39,13 @@ def _parse_episode_entry(entry: Any) -> Dict:
 
     # Get audio URL from enclosure
     audio_url = None
-    # feedparser entries use attribute access or dict access. 
-    # attributes are safer with getattr for optional fields if using objects, 
+    # feedparser entries use attribute access or dict access.
+    # attributes are safer with getattr for optional fields if using objects,
     # but here entry is likely a struct.
     if hasattr(entry, "enclosures") and entry.enclosures:
         audio_url = entry.enclosures[0].href
     elif "enclosures" in entry and entry["enclosures"]:
-         audio_url = entry["enclosures"][0]["href"]
+        audio_url = entry["enclosures"][0]["href"]
 
     # Parse publication date
     pub_date = None
@@ -147,15 +147,14 @@ def fetch_latest_episode(feed_url: str = CONDUIT_RSS_FEED) -> Dict:
     return episode
 
 
-def fetch_latest_episode_number(feed_url: str = CONDUIT_RSS_FEED) -> int:
+def fetch_latest_episode_details(feed_url: str = CONDUIT_RSS_FEED) -> Dict:
     """
-    Get the latest episode number.
+    Fetch the latest episode from the feed with full details.
 
     Args:
-        feed_url: URL of the RSS feed (defaults to Conduit feed)
+        feed_url: URL of the RSS feed
 
     Returns:
-        Latest episode number
+        Latest episode dictionary with metadata
     """
-    episode = fetch_latest_episode(feed_url)
-    return episode["episode_number"]
+    return fetch_latest_episode(feed_url)

@@ -22,6 +22,141 @@ from .models import (
 router = APIRouter()
 
 
+@router.post(
+    "/episodes/check-latest",
+    response_model=EpisodeResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def check_latest_episode(
+    background_tasks: BackgroundTasks,
+    podcast_id: int = Query(1, description="Podcast ID"),
+    feed_url: Optional[str] = Query(None, description="Override RSS feed URL"),
+):
+    """
+    Check for the latest episode in the RSS feed.
+    If it's new (not in DB), start transcription in background.
+    """
+    from podcast_transcription_core.utils.rss import (
+        fetch_latest_episode_details,
+        CONDUIT_RSS_FEED,
+    )
+    from podcast_transcription_core.transcription.audio import download_audio_file
+    from podcast_transcription_core.transcription.core import HybridTranscriber
+    import frontmatter
+    import os
+
+    db = VectorDatabase()
+
+    # Update feed URL if provided
+    if feed_url:
+        db.update_podcast_feed_url(podcast_id, feed_url)
+
+    # Get current feed URL from DB
+    podcast = db.get_podcast(podcast_id)
+    current_feed_url = (
+        podcast.feed_url if podcast and podcast.feed_url else CONDUIT_RSS_FEED
+    )
+
+    # Fetch latest episode from RSS
+    try:
+        latest_ep_data = fetch_latest_episode_details(current_feed_url)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching RSS feed: {e}")
+
+    episode_number = latest_ep_data["episode_number"]
+
+    # Check if exists in DB
+    session = db.Session()
+    existing_transcript = (
+        session.query(Transcript)
+        .filter(
+            Transcript.episode_number == episode_number,
+            Transcript.podcast == podcast_id,
+        )
+        .first()
+    )
+    session.close()
+
+    if existing_transcript:
+        return await get_episode(episode_number, "Conduit")
+
+    # It's new! Start background task
+    # First, create a placeholder transcript record
+
+    # Create basic frontmatter post to initialize record
+    post = frontmatter.Post(content="")
+    post.metadata = {
+        "title": latest_ep_data["title"],
+        "episode_number": episode_number,
+        "description": latest_ep_data["description"],
+        "url": latest_ep_data["url"],
+        "pub_date": latest_ep_data["pub_date"],
+        "audio_url": latest_ep_data["audio_url"],
+    }
+
+    # This will create the record with empty content
+    db.process_frontmatter_post(post)
+
+    # Set status to processing
+    db.set_transcript_status(podcast_id, episode_number, "processing")
+
+    # Add background task for transcription
+    background_tasks.add_task(
+        process_new_episode_transcription,
+        podcast_id,
+        episode_number,
+        latest_ep_data["audio_url"],
+    )
+
+    # Return placeholder
+    return EpisodeResponse(
+        episode_number=episode_number,
+        podcast="Conduit",
+        metadata=EpisodeMetadata(
+            title=latest_ep_data["title"],
+            description=latest_ep_data["description"],
+            url=latest_ep_data["url"],
+            pub_date=str(latest_ep_data["pub_date"]),
+        ),
+        content="",
+        chunks_count=0,
+        processing_status="processing",
+    )
+
+
+def process_new_episode_transcription(
+    podcast_id: int, episode_number: int, audio_url: str
+):
+    """Background task to download, transcribe, and index a new episode."""
+    from podcast_transcription_core.transcription.audio import download_audio_file
+    from podcast_transcription_core.transcription.core import HybridTranscriber
+    import os
+
+    db = VectorDatabase()
+
+    try:
+        # 1. Download audio
+        if not audio_url:
+            raise ValueError("No audio URL provided")
+
+        audio_path = download_audio_file(audio_url)
+
+        # 2. Transcribe
+        transcriber = HybridTranscriber(model="base")
+        transcript_text = transcriber.transcribe(audio_path)
+
+        # 3. Cleanup audio file
+        if audio_path.exists():
+            os.unlink(audio_path)
+
+        # 4. Update DB with content (this also chunks it and sets status to completed)
+        db.update_transcript_content(podcast_id, episode_number, transcript_text)
+
+    except Exception as e:
+        print(f"Error processing new episode {episode_number}: {e}")
+        db.set_transcript_status(podcast_id, episode_number, "error")
+
+
 def run_transcript_update(episode_number: int, content: str):
     """Background task to update transcript content."""
     db = VectorDatabase()
