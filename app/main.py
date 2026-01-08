@@ -219,7 +219,12 @@ async def search(
 
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "results": results, "episode_number": episode_num},
+        {
+            "request": request,
+            "results": results,
+            "query": query,
+            "episode_number": episode_num,
+        },
     )
 
 
