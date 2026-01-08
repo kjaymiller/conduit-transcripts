@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "test-conduit": {
-      "command": "http://localhost:8000",
-      "args": []
-    }
-  }
-}
