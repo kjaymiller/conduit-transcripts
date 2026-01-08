@@ -59,3 +59,7 @@ class HealthResponse(BaseModel):
 
 class ChatRequest(BaseModel):
     query: str = Field(..., description="User's question")
+
+
+class TranscriptUpdate(BaseModel):
+    content: str = Field(..., description="The full transcript content to update")

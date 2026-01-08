@@ -92,9 +92,12 @@ async def episode_detail(request: Request, episode_number: int):
     )
 
     transcript_text = None
-    if transcript and transcript.chunks:
-        chunks = sorted(transcript.chunks, key=lambda x: x.created_at)
-        transcript_text = " ".join(chunk.content for chunk in chunks)
+    if transcript:
+        if transcript.meta and "content" in transcript.meta:
+            transcript_text = transcript.meta["content"]
+        elif transcript.chunks:
+            chunks = sorted(transcript.chunks, key=lambda x: x.created_at)
+            transcript_text = " ".join(chunk.content for chunk in chunks)
 
     session.close()
 

@@ -16,9 +16,40 @@ from .models import (
     EpisodeListItem,
     EpisodeMetadata,
     ChatRequest,
+    TranscriptUpdate,
 )
 
 router = APIRouter()
+
+
+@router.put("/episode/{episode_number}/transcript", response_model=EpisodeResponse)
+async def update_episode_transcript(
+    episode_number: int,
+    update: TranscriptUpdate,
+    podcast: str = Query("Conduit", description="Podcast name"),
+):
+    """Update transcript content for a specific episode."""
+    try:
+        db = VectorDatabase()
+
+        # We assume podcast ID 1 for Conduit for now, matching the rest of the code
+        success = db.update_transcript_content(1, episode_number, update.content)
+
+        if not success:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to update transcript for episode {episode_number}",
+            )
+
+        # Return the updated episode
+        return await get_episode(episode_number, podcast)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error updating transcript: {str(e)}"
+        )
 
 
 @router.get("/search/vector", response_model=SearchResponse)
@@ -200,13 +231,21 @@ async def get_episode(
 
         chunks_count = len(transcript.chunks)
 
+        content = ""
+        if transcript.meta and "content" in transcript.meta:
+            content = transcript.meta["content"]
+        elif transcript.chunks:
+            # Fallback to joining chunks if no full content in meta
+            chunks = sorted(transcript.chunks, key=lambda x: x.created_at)
+            content = " ".join(chunk.content for chunk in chunks)
+
         session.close()
 
         return EpisodeResponse(
             episode_number=episode_number,
             podcast=podcast,
             metadata=metadata,
-            content=transcript.content,
+            content=content,
             chunks_count=chunks_count,
         )
     except HTTPException:

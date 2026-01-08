@@ -37,10 +37,33 @@
     </div>
 
     {% if transcript %}
-    <div class="bg-gray-800 border border-gray-700 rounded-lg p-8">
-        <h3 class="text-xl font-semibold text-white mb-6">Transcript</h3>
-        <div class="prose prose-invert max-w-none">
+    <div class="bg-gray-800 border border-gray-700 rounded-lg p-8" id="transcript-container">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-semibold text-white">Transcript</h3>
+            <button id="edit-transcript-btn" class="text-blue-400 hover:text-blue-300 text-sm flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                Edit
+            </button>
+        </div>
+        
+        <div id="transcript-view" class="prose prose-invert max-w-none">
             <pre class="whitespace-pre-wrap text-gray-300 text-sm leading-relaxed">{{ transcript }}</pre>
+        </div>
+
+        <div id="transcript-edit" class="hidden">
+            <textarea id="transcript-textarea" class="w-full h-96 bg-gray-900 text-gray-300 text-sm p-4 rounded border border-gray-600 focus:outline-none focus:border-blue-500 font-mono" spellcheck="false">{{ transcript }}</textarea>
+            <div class="flex justify-end space-x-3 mt-4">
+                <button id="cancel-edit-btn" class="px-4 py-2 text-gray-400 hover:text-white transition-colors">Cancel</button>
+                <button id="save-transcript-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded transition-colors flex items-center">
+                    <svg class="w-4 h-4 mr-2 animate-spin hidden" id="save-spinner" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Save Changes
+                </button>
+            </div>
         </div>
     </div>
     {% else %}
@@ -136,6 +159,61 @@
            
             chatMessages.scrollTop = chatMessages.scrollHeight;
             return div;
+        }
+
+        // Transcript Editing Logic
+        const editBtn = document.getElementById('edit-transcript-btn');
+        const cancelBtn = document.getElementById('cancel-edit-btn');
+        const saveBtn = document.getElementById('save-transcript-btn');
+        const transcriptView = document.getElementById('transcript-view');
+        const transcriptEdit = document.getElementById('transcript-edit');
+        const transcriptTextarea = document.getElementById('transcript-textarea');
+        const saveSpinner = document.getElementById('save-spinner');
+
+        if (editBtn) {
+            editBtn.addEventListener('click', () => {
+                transcriptView.classList.add('hidden');
+                transcriptEdit.classList.remove('hidden');
+                editBtn.classList.add('hidden');
+            });
+
+            cancelBtn.addEventListener('click', () => {
+                transcriptView.classList.remove('hidden');
+                transcriptEdit.classList.add('hidden');
+                editBtn.classList.remove('hidden');
+                // Reset textarea value
+                transcriptTextarea.value = transcriptTextarea.defaultValue;
+            });
+
+            saveBtn.addEventListener('click', async () => {
+                const newContent = transcriptTextarea.value;
+                if (!newContent) return;
+
+                saveBtn.disabled = true;
+                saveSpinner.classList.remove('hidden');
+
+                try {
+                    const response = await fetch(`/api/v1/episode/${episodeNumber}/transcript`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ content: newContent }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to update transcript');
+                    }
+
+                    // Reload page to show updated content and new chunks
+                    window.location.reload();
+
+                } catch (error) {
+                    alert('Error updating transcript: ' + error.message);
+                    saveBtn.disabled = false;
+                    saveSpinner.classList.add('hidden');
+                }
+            });
         }
     </script>
 </div>

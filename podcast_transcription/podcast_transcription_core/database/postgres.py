@@ -62,6 +62,60 @@ class VectorDatabase:
                 encode_kwargs={"normalize_embeddings": False},
             )
 
+    def update_transcript_content(
+        self, podcast_id: int, episode_number: int, new_content: str
+    ) -> bool:
+        """Update transcript content and regenerate chunks.
+
+        Args:
+            podcast_id: The ID of the podcast.
+            episode_number: The episode number.
+            new_content: The new transcript content.
+
+        Returns:
+            True if successful, False otherwise.
+        """
+        session = self.Session()
+        try:
+            # Update transcript
+            transcript = session.query(Transcript).get((podcast_id, episode_number))
+            if not transcript:
+                logger.error(f"Transcript not found: {podcast_id}, {episode_number}")
+                return False
+
+            # Update content in metadata
+            new_meta = transcript.meta.copy()
+            new_meta["content"] = new_content
+            transcript.meta = new_meta
+
+            # Clear existing chunks
+            session.query(VectorChunk).filter_by(
+                episode_number=episode_number, podcast=podcast_id
+            ).delete()
+
+            # Create new chunks
+            texts = self.text_splitter.split_text(new_content)
+            if texts:
+                embeddings = self.embedding_model.embed_documents(texts)
+                for text_content, embedding in zip(texts, embeddings):
+                    chunk = VectorChunk(
+                        episode_number=episode_number,
+                        podcast=podcast_id,
+                        content=text_content,
+                        embedding=embedding,
+                    )
+                    session.add(chunk)
+
+            session.commit()
+            logger.info(f"Updated transcript {episode_number} with {len(texts)} chunks")
+            return True
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error updating transcript: {e}")
+            return False
+        finally:
+            session.close()
+
     def process_frontmatter_post(self, post: frontmatter.Post) -> bool:
         """Process a frontmatter post and save to database.
 
