@@ -11,13 +11,19 @@ mcp = FastMCP("Conduit Transcripts Server", host="0.0.0.0")
 
 
 @mcp.tool()
-def search_transcripts(query: str, limit: int = 10, use_vector: bool = True) -> str:
+def search_transcripts(
+    query: str,
+    limit: int = 10,
+    use_vector: bool = True,
+    episode_number: int | None = None,
+) -> str:
     """Search through Conduit podcast transcripts.
 
     Args:
         query: Search query text
         limit: Maximum number of results (1-100)
         use_vector: If True, use semantic vector search; if False, use keyword text search
+        episode_number: Optional episode number to filter results
 
     Returns:
         JSON string with search results
@@ -45,18 +51,22 @@ def search_transcripts(query: str, limit: int = 10, use_vector: bool = True) -> 
                 )
 
             query_embedding = embedding_model.embed_query(query)
+
+            stmt = select(
+                VectorChunk,
+                VectorChunk.embedding.l2_distance(query_embedding).label("distance"),
+            )
+
+            if episode_number is not None:
+                stmt = stmt.filter(VectorChunk.episode_number == episode_number)
+
             search_results = session.execute(
-                select(
-                    VectorChunk,
-                    VectorChunk.embedding.l2_distance(query_embedding).label(
-                        "distance"
-                    ),
+                stmt.order_by(VectorChunk.embedding.l2_distance(query_embedding)).limit(
+                    limit
                 )
-                .order_by(VectorChunk.embedding.l2_distance(query_embedding))
-                .limit(limit)
             ).all()
 
-            for chunk, distance in results:
+            for chunk, distance in search_results:
                 similarity_score = (
                     1.0 / (1.0 + distance) if distance is not None else 0.0
                 )
@@ -71,12 +81,14 @@ def search_transcripts(query: str, limit: int = 10, use_vector: bool = True) -> 
                     }
                 )
         else:
-            search_results = (
-                session.query(VectorChunk)
-                .filter(VectorChunk.content.ilike(f"%{query}%"))
-                .limit(limit)
-                .all()
+            stmt = session.query(VectorChunk).filter(
+                VectorChunk.content.ilike(f"%{query}%")
             )
+
+            if episode_number is not None:
+                stmt = stmt.filter(VectorChunk.episode_number == episode_number)
+
+            search_results = stmt.limit(limit).all()
 
             for chunk in search_results:
                 results.append(
@@ -141,25 +153,43 @@ def get_episode(episode_number: int) -> str:
 
 
 @mcp.tool()
-def list_episodes(limit: int = 20) -> str:
+def list_episodes(
+    limit: int = 20, start_date: str | None = None, end_date: str | None = None
+) -> str:
     """List all available Conduit episodes.
 
     Args:
         limit: Maximum number of episodes to return (1-100)
+        start_date: Filter episodes published on or after this date (ISO format YYYY-MM-DD)
+        end_date: Filter episodes published on or before this date (ISO format YYYY-MM-DD)
 
     Returns:
         JSON string with list of episodes
     """
     try:
+        from datetime import datetime
+
         db = VectorDatabase()
         session = db.Session()
 
+        query = session.query(Transcript).filter(Transcript.podcast == "Conduit")
+
+        if start_date:
+            try:
+                start_dt = datetime.fromisoformat(start_date)
+                query = query.filter(Transcript.published_date >= start_dt)
+            except ValueError:
+                return f"Error: Invalid start_date format '{start_date}'. Use ISO format YYYY-MM-DD."
+
+        if end_date:
+            try:
+                end_dt = datetime.fromisoformat(end_date)
+                query = query.filter(Transcript.published_date <= end_dt)
+            except ValueError:
+                return f"Error: Invalid end_date format '{end_date}'. Use ISO format YYYY-MM-DD."
+
         transcripts = (
-            session.query(Transcript)
-            .filter(Transcript.podcast == "Conduit")
-            .order_by(Transcript.episode_number.desc())
-            .limit(limit)
-            .all()
+            query.order_by(Transcript.episode_number.desc()).limit(limit).all()
         )
 
         episodes = []

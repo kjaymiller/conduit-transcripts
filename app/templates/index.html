@@ -7,16 +7,29 @@
     <h1 class="text-4xl font-bold text-white mb-8 text-center">Search Transcripts</h1>
 
     <form action="/search" method="GET" class="space-y-6">
-        <div>
-            <label for="query" class="block text-sm font-medium text-gray-300 mb-2">Search Query</label>
-            <input
-                type="text"
-                name="query"
-                id="query"
-                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter your search query..."
-                required
-            >
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="md:col-span-3">
+                <label for="query" class="block text-sm font-medium text-gray-300 mb-2">Search Query</label>
+                <input
+                    type="text"
+                    name="query"
+                    id="query"
+                    class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter your search query..."
+                    required
+                >
+            </div>
+            <div>
+                <label for="episode_number" class="block text-sm font-medium text-gray-300 mb-2">Episode # (Optional)</label>
+                <input
+                    type="number"
+                    name="episode_number"
+                    id="episode_number"
+                    class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g. 10"
+                    min="1"
+                >
+            </div>
         </div>
 
         <div class="flex items-center space-x-6">

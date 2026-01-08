@@ -25,6 +25,7 @@ async def vector_search(
     similarity_threshold: float = Query(
         0.0, ge=0.0, le=1.0, description="Minimum similarity score"
     ),
+    episode_number: Optional[int] = Query(None, description="Filter by episode number"),
 ):
     """Semantic search using vector embeddings."""
     try:
@@ -49,13 +50,18 @@ async def vector_search(
 
         query_embedding = embedding_model.embed_query(query)
 
+        stmt = select(
+            VectorChunk,
+            VectorChunk.embedding.l2_distance(query_embedding).label("distance"),
+        )
+
+        if episode_number is not None:
+            stmt = stmt.filter(VectorChunk.episode_number == episode_number)
+
         results = session.execute(
-            select(
-                VectorChunk,
-                VectorChunk.embedding.l2_distance(query_embedding).label("distance"),
+            stmt.order_by(VectorChunk.embedding.l2_distance(query_embedding)).limit(
+                limit
             )
-            .order_by(VectorChunk.embedding.l2_distance(query_embedding))
-            .limit(limit)
         ).all()
 
         search_results = []
@@ -96,18 +102,21 @@ async def vector_search(
 async def text_search(
     query: str = Query(..., description="Search query text"),
     limit: int = Query(10, ge=1, le=100, description="Maximum results"),
+    episode_number: Optional[int] = Query(None, description="Filter by episode number"),
 ):
     """Keyword-based text search."""
     try:
         db = VectorDatabase()
         session = db.Session()
 
-        results = (
-            session.query(VectorChunk)
-            .filter(VectorChunk.content.ilike(f"%{query}%"))
-            .limit(limit)
-            .all()
+        stmt = session.query(VectorChunk).filter(
+            VectorChunk.content.ilike(f"%{query}%")
         )
+
+        if episode_number is not None:
+            stmt = stmt.filter(VectorChunk.episode_number == episode_number)
+
+        results = stmt.limit(limit).all()
 
         search_results = []
         for chunk in results:
@@ -194,16 +203,43 @@ async def list_episodes(
     podcast: str = Query("Conduit", description="Podcast name"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum episodes"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
+    start_date: Optional[str] = Query(
+        None, description="Filter episodes published on or after this date (ISO format)"
+    ),
+    end_date: Optional[str] = Query(
+        None,
+        description="Filter episodes published on or before this date (ISO format)",
+    ),
 ):
     """List all available episodes."""
     try:
+        from datetime import datetime
+
         db = VectorDatabase()
         session = db.Session()
 
+        query = session.query(Transcript).filter(Transcript.podcast == podcast)
+
+        if start_date:
+            try:
+                start_dt = datetime.fromisoformat(start_date)
+                query = query.filter(Transcript.published_date >= start_dt)
+            except ValueError:
+                raise HTTPException(
+                    status_code=400, detail="Invalid start_date format. Use ISO format."
+                )
+
+        if end_date:
+            try:
+                end_dt = datetime.fromisoformat(end_date)
+                query = query.filter(Transcript.published_date <= end_dt)
+            except ValueError:
+                raise HTTPException(
+                    status_code=400, detail="Invalid end_date format. Use ISO format."
+                )
+
         transcripts = (
-            session.query(Transcript)
-            .filter(Transcript.podcast == podcast)
-            .order_by(Transcript.episode_number.desc())
+            query.order_by(Transcript.episode_number.desc())
             .limit(limit)
             .offset(offset)
             .all()

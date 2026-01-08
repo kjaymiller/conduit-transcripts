@@ -119,22 +119,28 @@ def vector_search(
         raise
 
 
-def text_search(query: str, limit: int = 10) -> List[SearchResult]:
+def text_search(
+    query: str, limit: int = 10, episode_number: Optional[int] = None
+) -> List[SearchResult]:
     """Search transcripts using text matching."""
     try:
-        logger.info(f"Text search query: '{query}' (limit={limit})")
+        logger.info(
+            f"Text search query: '{query}' (limit={limit}, episode={episode_number})"
+        )
 
         vector_db = VectorDatabase()
         session = vector_db.Session()
 
         try:
             # Perform text search using ILIKE for case-insensitive matching
-            results = (
-                session.query(VectorChunk)
-                .filter(VectorChunk.content.ilike(f"%{query}%"))
-                .limit(limit)
-                .all()
+            stmt = session.query(VectorChunk).filter(
+                VectorChunk.content.ilike(f"%{query}%")
             )
+
+            if episode_number is not None:
+                stmt = stmt.filter(VectorChunk.episode_number == episode_number)
+
+            results = stmt.limit(limit).all()
 
             # Convert results to SearchResult objects
             search_results = []

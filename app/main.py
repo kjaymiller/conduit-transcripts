@@ -1,4 +1,6 @@
+from typing import Optional
 from fastapi import FastAPI, Request
+
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
@@ -31,24 +33,47 @@ async def home(request: Request):
 
 
 @app.get("/episodes", response_class=HTMLResponse)
-async def episodes_list(request: Request, limit: int = 100):
+async def episodes_list(
+    request: Request,
+    limit: int = 100,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+):
     from podcast_transcription_core.database.postgres import VectorDatabase
     from podcast_transcription_core.models import Transcript
+    from datetime import datetime
 
     db = VectorDatabase()
     session = db.Session()
 
-    transcripts = (
-        session.query(Transcript)
-        .order_by(Transcript.episode_number.desc())
-        .limit(limit)
-        .all()
-    )
+    query = session.query(Transcript)
+
+    if start_date:
+        try:
+            start_dt = datetime.fromisoformat(start_date)
+            query = query.filter(Transcript.published_date >= start_dt)
+        except ValueError:
+            pass  # Ignore invalid dates for now or handle appropriately
+
+    if end_date:
+        try:
+            end_dt = datetime.fromisoformat(end_date)
+            query = query.filter(Transcript.published_date <= end_dt)
+        except ValueError:
+            pass
+
+    transcripts = query.order_by(Transcript.episode_number.desc()).limit(limit).all()
 
     session.close()
 
     return templates.TemplateResponse(
-        "episodes.html", {"request": request, "episodes": transcripts}
+        "episodes.html",
+        {
+            "request": request,
+            "episodes": transcripts,
+            "start_date": start_date,
+            "end_date": end_date,
+        },
     )
 
 
@@ -89,6 +114,7 @@ async def search(
     query: str,
     search_type: str = "text",
     limit: int = 20,
+    episode_number: Optional[int] = None,
 ):
     from podcast_transcription_core.database.postgres import VectorDatabase
     from podcast_transcription_core.models import Transcript, VectorChunk
@@ -118,13 +144,18 @@ async def search(
 
         query_embedding = embedding_model.embed_query(query)
 
+        stmt = select(
+            VectorChunk,
+            VectorChunk.embedding.l2_distance(query_embedding).label("distance"),
+        )
+
+        if episode_number is not None:
+            stmt = stmt.filter(VectorChunk.episode_number == episode_number)
+
         vector_results = session.execute(
-            select(
-                VectorChunk,
-                VectorChunk.embedding.l2_distance(query_embedding).label("distance"),
+            stmt.order_by(VectorChunk.embedding.l2_distance(query_embedding)).limit(
+                limit
             )
-            .order_by(VectorChunk.embedding.l2_distance(query_embedding))
-            .limit(limit)
         ).all()
 
         results = [
@@ -137,12 +168,14 @@ async def search(
         ]
 
     elif search_type == "title":
-        transcripts = (
-            session.query(Transcript)
-            .filter(Transcript.title.ilike(f"%{query}%"))
-            .limit(limit)
-            .all()
-        )
+        # Title search is on Transcript model, not VectorChunk
+        # It handles episode_number differently (it's a property of Transcript)
+        stmt = session.query(Transcript).filter(Transcript.title.ilike(f"%{query}%"))
+
+        if episode_number is not None:
+            stmt = stmt.filter(Transcript.episode_number == episode_number)
+
+        transcripts = stmt.limit(limit).all()
 
         results = [
             {
@@ -154,12 +187,15 @@ async def search(
         ]
 
     else:
-        chunks = (
-            session.query(VectorChunk)
-            .filter(VectorChunk.content.ilike(f"%{query}%"))
-            .limit(limit)
-            .all()
+        # Text search
+        stmt = session.query(VectorChunk).filter(
+            VectorChunk.content.ilike(f"%{query}%")
         )
+
+        if episode_number is not None:
+            stmt = stmt.filter(VectorChunk.episode_number == episode_number)
+
+        chunks = stmt.limit(limit).all()
 
         results = [
             {
@@ -172,7 +208,8 @@ async def search(
     session.close()
 
     return templates.TemplateResponse(
-        "index.html", {"request": request, "results": results}
+        "index.html",
+        {"request": request, "results": results, "episode_number": episode_number},
     )
 
 
