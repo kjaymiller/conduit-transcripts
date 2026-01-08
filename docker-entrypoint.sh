@@ -1,23 +1,27 @@
 #!/bin/bash
+
 set -e
 
-MODE=${CONDUIT_MODE:-api}
+# Start FastAPI app on port 8000 in background
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+MAIN_APP_PID=$!
 
-case $MODE in
-  api)
-    echo "Starting API server..."
-    exec uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT:-8000}
-    ;;
-  mcp)
-    echo "Starting MCP server..."
-    exec python -m app.mcp.server
-    ;;
-  cli)
-    echo "Running CLI command: $@"
-    exec "$@"
-    ;;
-  *)
-    echo "Error: Unknown mode '$MODE'. Valid modes: api, mcp, cli"
-    exit 1
-    ;;
-esac
+# Start MCP server on port 8001 in background
+uv run python -m app.mcp.server &
+MCP_SERVER_PID=$!
+
+# Function to handle shutdown
+shutdown() {
+    echo "Shutting down servers..."
+    kill $MAIN_APP_PID 2>/dev/null || true
+    kill $MCP_SERVER_PID 2>/dev/null || true
+    wait $MAIN_APP_PID 2>/dev/null || true
+    wait $MCP_SERVER_PID 2>/dev/null || true
+    exit 0
+}
+
+# Trap signals
+trap shutdown SIGTERM SIGINT
+
+# Wait for both processes
+wait

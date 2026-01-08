@@ -15,10 +15,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
     networks:
       - conduit-network
 
-  # FastAPI app (also contains CLI)
+  # FastAPI app (also contains CLI and MCP server)
   app:
     build:
       context: .

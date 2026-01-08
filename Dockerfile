@@ -35,5 +35,9 @@ RUN uv sync --frozen
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Run the FastAPI server
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Copy entrypoint script
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+
+# Run entrypoint script that starts both FastAPI and MCP server
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

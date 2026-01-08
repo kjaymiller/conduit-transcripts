@@ -2,12 +2,25 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
+from contextlib import asynccontextmanager
+from app.mcp.server import mcp
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with mcp.session_manager.run():
+        yield
+
 
 app = FastAPI(
     title="Conduit Transcripts API",
     description="API for searching and managing podcast transcripts",
     version="0.1.0",
+    lifespan=lifespan,
 )
+
+# Mount MCP server
+app.mount("/mcp", mcp.sse_app())
 
 templates = Jinja2Templates(directory="app/templates")
 

@@ -182,4 +182,7 @@ def list_episodes(limit: int = 20) -> str:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    import os
+
+    port = int(os.getenv("MCP_PORT", "8001"))
+    mcp.run(transport="sse", host="0.0.0.0", port=port)
