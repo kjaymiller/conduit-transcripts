@@ -114,11 +114,21 @@ async def search(
     query: str,
     search_type: str = "text",
     limit: int = 20,
-    episode_number: Optional[int] = None,
+    episode_number: Optional[str] = None,
 ):
     from podcast_transcription_core.database.postgres import VectorDatabase
     from podcast_transcription_core.models import Transcript, VectorChunk
     from podcast_transcription_core.config import settings
+
+    # Process episode_number: treat empty string as None, otherwise parse to int
+    episode_num: Optional[int] = None
+    if episode_number and episode_number.strip():
+        try:
+            episode_num = int(episode_number)
+        except ValueError:
+            # If invalid integer is passed (like "abc"), ignore it or treat as None
+            # Could also raise HTTPException(422) if strict validation is desired
+            pass
 
     db = VectorDatabase()
     session = db.Session()
@@ -149,8 +159,8 @@ async def search(
             VectorChunk.embedding.l2_distance(query_embedding).label("distance"),
         )
 
-        if episode_number is not None:
-            stmt = stmt.filter(VectorChunk.episode_number == episode_number)
+        if episode_num is not None:
+            stmt = stmt.filter(VectorChunk.episode_number == episode_num)
 
         vector_results = session.execute(
             stmt.order_by(VectorChunk.embedding.l2_distance(query_embedding)).limit(
@@ -172,8 +182,8 @@ async def search(
         # It handles episode_number differently (it's a property of Transcript)
         stmt = session.query(Transcript).filter(Transcript.title.ilike(f"%{query}%"))
 
-        if episode_number is not None:
-            stmt = stmt.filter(Transcript.episode_number == episode_number)
+        if episode_num is not None:
+            stmt = stmt.filter(Transcript.episode_number == episode_num)
 
         transcripts = stmt.limit(limit).all()
 
@@ -192,8 +202,8 @@ async def search(
             VectorChunk.content.ilike(f"%{query}%")
         )
 
-        if episode_number is not None:
-            stmt = stmt.filter(VectorChunk.episode_number == episode_number)
+        if episode_num is not None:
+            stmt = stmt.filter(VectorChunk.episode_number == episode_num)
 
         chunks = stmt.limit(limit).all()
 
@@ -209,7 +219,7 @@ async def search(
 
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "results": results, "episode_number": episode_number},
+        {"request": request, "results": results, "episode_number": episode_num},
     )
 
 

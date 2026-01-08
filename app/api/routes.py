@@ -25,10 +25,18 @@ async def vector_search(
     similarity_threshold: float = Query(
         0.0, ge=0.0, le=1.0, description="Minimum similarity score"
     ),
-    episode_number: Optional[int] = Query(None, description="Filter by episode number"),
+    episode_number: Optional[str] = Query(None, description="Filter by episode number"),
 ):
     """Semantic search using vector embeddings."""
     try:
+        # Parse episode_number
+        episode_num: Optional[int] = None
+        if episode_number and episode_number.strip():
+            try:
+                episode_num = int(episode_number)
+            except ValueError:
+                pass
+
         db = VectorDatabase()
         session = db.Session()
 
@@ -55,8 +63,8 @@ async def vector_search(
             VectorChunk.embedding.l2_distance(query_embedding).label("distance"),
         )
 
-        if episode_number is not None:
-            stmt = stmt.filter(VectorChunk.episode_number == episode_number)
+        if episode_num is not None:
+            stmt = stmt.filter(VectorChunk.episode_number == episode_num)
 
         results = session.execute(
             stmt.order_by(VectorChunk.embedding.l2_distance(query_embedding)).limit(
@@ -102,10 +110,18 @@ async def vector_search(
 async def text_search(
     query: str = Query(..., description="Search query text"),
     limit: int = Query(10, ge=1, le=100, description="Maximum results"),
-    episode_number: Optional[int] = Query(None, description="Filter by episode number"),
+    episode_number: Optional[str] = Query(None, description="Filter by episode number"),
 ):
     """Keyword-based text search."""
     try:
+        # Parse episode_number
+        episode_num: Optional[int] = None
+        if episode_number and episode_number.strip():
+            try:
+                episode_num = int(episode_number)
+            except ValueError:
+                pass
+
         db = VectorDatabase()
         session = db.Session()
 
@@ -113,8 +129,8 @@ async def text_search(
             VectorChunk.content.ilike(f"%{query}%")
         )
 
-        if episode_number is not None:
-            stmt = stmt.filter(VectorChunk.episode_number == episode_number)
+        if episode_num is not None:
+            stmt = stmt.filter(VectorChunk.episode_number == episode_num)
 
         results = stmt.limit(limit).all()
 
