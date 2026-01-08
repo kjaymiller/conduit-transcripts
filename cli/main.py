@@ -32,9 +32,9 @@ def cli():
 def search(query: str, vector: bool, title: bool, limit: int):
     """Search transcripts."""
     try:
-        from podcast_transcription.config import settings
-        from podcast_transcription.database.postgres import VectorDatabase
-        from podcast_transcription.models import VectorChunk, Transcript
+        from podcast_transcription_core.config import settings
+        from podcast_transcription_core.database.postgres import VectorDatabase
+        from podcast_transcription_core.models import VectorChunk, Transcript
 
         db = VectorDatabase()
         session = db.Session()
@@ -142,8 +142,8 @@ def search(query: str, vector: bool, title: bool, limit: int):
 def status(episode_number: int):
     """Check episode status."""
     try:
-        from podcast_transcription.database.postgres import VectorDatabase
-        from podcast_transcription.models import Transcript
+        from podcast_transcription_core.database.postgres import VectorDatabase
+        from podcast_transcription_core.models import Transcript
 
         db = VectorDatabase()
         session = db.Session()
@@ -195,7 +195,7 @@ def transcribe(
 ):
     """Transcribe an episode."""
     try:
-        from podcast_transcription.transcription.metadata import (
+        from podcast_transcription_core.transcription.metadata import (
             get_audio_url_from_episode_number,
             fetch_latest_episode_number,
         )
@@ -231,14 +231,16 @@ def transcribe(
             console.print(f"[green]Found audio URL: {audio_url}[/green]")
 
             # Download audio
-            from podcast_transcription.transcription.audio import download_audio_file
+            from podcast_transcription_core.transcription.audio import (
+                download_audio_file,
+            )
 
             audio_file = download_audio_file(audio_url)
             console.print(f"[green]Downloaded audio to: {audio_file}[/green]")
 
             # Transcribe
             console.print(f"[blue]Transcribing with {model} model...[/blue]")
-            from podcast_transcription.transcription import HybridTranscriber
+            from podcast_transcription_core.transcription import HybridTranscriber
 
             transcriber = HybridTranscriber(model=model, prefer_mlx=prefer_mlx)
             transcription = transcriber.transcribe(audio_file)
@@ -266,7 +268,7 @@ def transcribe(
 
             if ingest:
                 console.print(f"[blue]Ingesting {output_file}...[/blue]")
-                from podcast_transcription.database.postgres import VectorDatabase
+                from podcast_transcription_core.database.postgres import VectorDatabase
 
                 db = VectorDatabase()
                 success = db.process_frontmatter_post(post)
@@ -301,7 +303,7 @@ def transcribe_file(
     try:
         file_path_obj = pathlib.Path(file_path)
         console.print(f"[blue]Transcribing {file_path} with {model} model...[/blue]")
-        from podcast_transcription.transcription import HybridTranscriber
+        from podcast_transcription_core.transcription import HybridTranscriber
 
         transcriber = HybridTranscriber(model=model, prefer_mlx=prefer_mlx)
         transcription = transcriber.transcribe(file_path_obj)
@@ -348,7 +350,7 @@ def ingest(files: typing.Tuple[str, ...], directory: str, reindex: bool):
             sys.exit(0)
 
         console.print("[blue]Initializing PostgreSQL database...[/blue]")
-        from podcast_transcription.database.postgres import VectorDatabase
+        from podcast_transcription_core.database.postgres import VectorDatabase
 
         pg_db = VectorDatabase(recreate_tables=reindex)
 
@@ -397,8 +399,8 @@ def ingest(files: typing.Tuple[str, ...], directory: str, reindex: bool):
 def list(limit: int):
     """List episodes."""
     try:
-        from podcast_transcription.database.postgres import VectorDatabase
-        from podcast_transcription.models import Transcript
+        from podcast_transcription_core.database.postgres import VectorDatabase
+        from podcast_transcription_core.models import Transcript
 
         db = VectorDatabase()
         session = db.Session()
