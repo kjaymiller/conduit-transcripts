@@ -3,13 +3,13 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from contextlib import asynccontextmanager
+
 from app.mcp.server import mcp
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with mcp.session_manager.run():
-        yield
+    yield
 
 
 app = FastAPI(
@@ -19,7 +19,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Mount MCP server
+# Mount the MCP server
 app.mount("/mcp", mcp.sse_app())
 
 templates = Jinja2Templates(directory="app/templates")
@@ -180,10 +180,11 @@ async def search(
 async def health_check():
     try:
         from podcast_transcription_core.database.postgres import VectorDatabase
+        from sqlalchemy import text
 
         db = VectorDatabase()
         session = db.Session()
-        session.execute("SELECT 1")
+        session.execute(text("SELECT 1"))
         session.close()
 
         return {"status": "healthy", "database": "connected"}

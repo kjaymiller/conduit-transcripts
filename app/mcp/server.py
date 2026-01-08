@@ -5,7 +5,9 @@ from podcast_transcription_core.database.postgres import VectorDatabase
 from podcast_transcription_core.config import settings
 from podcast_transcription_core.models import VectorChunk, Transcript
 
-mcp = FastMCP("Conduit Transcripts Server")
+# Initialize FastMCP with 0.0.0.0 host to disable DNS rebinding protection
+# This allows access via external domains like conduit.kjaymiller.dev
+mcp = FastMCP("Conduit Transcripts Server", host="0.0.0.0")
 
 
 @mcp.tool()
