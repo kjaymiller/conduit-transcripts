@@ -407,8 +407,11 @@ def list(limit: int):
 
         transcripts = (
             session.query(Transcript)
-            .filter(Transcript.podcast == "Conduit")
-            .order_by(Transcript.episode_number.desc())
+            .filter(Transcript.podcast == 1)
+            .order_by(
+                Transcript.published_date.desc().nulls_last(),
+                Transcript.episode_number.desc(),
+            )
             .limit(limit)
             .all()
         )

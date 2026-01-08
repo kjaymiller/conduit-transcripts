@@ -172,7 +172,7 @@ def list_episodes(
         db = VectorDatabase()
         session = db.Session()
 
-        query = session.query(Transcript).filter(Transcript.podcast == "Conduit")
+        query = session.query(Transcript).filter(Transcript.podcast == 1)
 
         if start_date:
             try:
@@ -189,7 +189,12 @@ def list_episodes(
                 return f"Error: Invalid end_date format '{end_date}'. Use ISO format YYYY-MM-DD."
 
         transcripts = (
-            query.order_by(Transcript.episode_number.desc()).limit(limit).all()
+            query.order_by(
+                Transcript.published_date.desc().nulls_last(),
+                Transcript.episode_number.desc(),
+            )
+            .limit(limit)
+            .all()
         )
 
         episodes = []
