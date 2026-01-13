@@ -19,6 +19,30 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 console = Console()
 
 
+def _parse_episodes(episodes: typing.Tuple[str, ...]) -> typing.List[int]:
+    """Parse episode arguments into a list of episode numbers."""
+    from podcast_transcription_core.transcription.metadata import (
+        fetch_latest_episode_number,
+    )
+
+    episode_list = []
+    for ep_str in episodes:
+        if ep_str.lower() == "latest":
+            episode_list.append(fetch_latest_episode_number())
+        elif ep_str.lower() == "all":
+            latest = fetch_latest_episode_number()
+            episode_list.extend(range(1, latest + 1))
+        elif "-" in ep_str:
+            start, end = map(int, ep_str.split("-"))
+            episode_list.extend(range(start, end + 1))
+        elif "," in ep_str:
+            episode_list.extend(map(int, ep_str.split(",")))
+        else:
+            episode_list.append(int(ep_str))
+
+    return sorted(list(set(episode_list)))
+
+
 @click.group(help="Conduit Transcripts CLI")
 def cli():
     pass
@@ -180,6 +204,46 @@ def status(episode_number: int):
 
 @cli.command()
 @click.argument("episodes", nargs=-1, required=True)
+@click.option("--output-dir", "-o", default="downloads", help="Output directory")
+def download(episodes: typing.Tuple[str, ...], output_dir: str):
+    """Download episode audio."""
+    try:
+        from podcast_transcription_core.transcription.audio import (
+            download_audio_to_path,
+        )
+        from podcast_transcription_core.transcription.metadata import (
+            get_audio_url_from_episode_number,
+        )
+
+        episode_list = _parse_episodes(episodes)
+        out_path = pathlib.Path(output_dir)
+
+        for episode_number in episode_list:
+            console.print(
+                f"[blue]Fetching audio URL for episode {episode_number}...[/blue]"
+            )
+            result = get_audio_url_from_episode_number(episode_number)
+
+            if result is None:
+                console.print(
+                    f"[red]Could not fetch metadata for episode {episode_number}[/red]"
+                )
+                continue
+
+            metadata, audio_url = result
+            console.print(f"[green]Found audio URL: {audio_url}[/green]")
+
+            file_path = out_path / f"{episode_number}.mp3"
+            download_audio_to_path(audio_url, file_path)
+            console.print(f"[green]Downloaded audio to: {file_path}[/green]")
+
+    except Exception as e:
+        console.print(f"[red]Error downloading: {e}[/red]")
+        sys.exit(1)
+
+
+@cli.command()
+@click.argument("episodes", nargs=-1, required=True)
 @click.option(
     "--model", "-m", default="base", help="Model size", envvar="TRANSCRIPTION_MODEL"
 )
@@ -197,23 +261,9 @@ def transcribe(
     try:
         from podcast_transcription_core.transcription.metadata import (
             get_audio_url_from_episode_number,
-            fetch_latest_episode_number,
         )
 
-        episode_list = []
-        for ep_str in episodes:
-            if ep_str.lower() == "latest":
-                episode_list.append(fetch_latest_episode_number())
-            elif ep_str.lower() == "all":
-                latest = fetch_latest_episode_number()
-                episode_list.extend(range(1, latest + 1))
-            elif "-" in ep_str:
-                start, end = map(int, ep_str.split("-"))
-                episode_list.extend(range(start, end + 1))
-            elif "," in ep_str:
-                episode_list.extend(map(int, ep_str.split(",")))
-            else:
-                episode_list.append(int(ep_str))
+        episode_list = _parse_episodes(episodes)
 
         for episode_number in episode_list:
             console.print(

@@ -19,67 +19,51 @@ set shell := ["bash", "-c"]
 @env-load:
     source .envrc
 
-# CLI Commands (using new modular structure)
+# CLI Commands
+
+# Download audio only
+download EPISODES:
+    uv run python -m cli.main download {{EPISODES}}
+
+# Transcribe and ingest (default)
+transcribe EPISODES:
+    uv run python -m cli.main transcribe {{EPISODES}}
+
+# Transcribe only (save to disk, no ingest)
+transcribe-only EPISODES:
+    uv run python -m cli.main transcribe {{EPISODES}} --no-ingest
+
+# Transcribe local file
+transcribe-file FILE OUTPUT="":
+    uv run python -m cli.main transcribe-file {{FILE}} --output "{{OUTPUT}}"
+
+# Ingest files (default: all in transcripts/)
+ingest FILES="":
+    uv run python -m cli.main ingest {{FILES}}
+
+# Ingest directory
+ingest-dir DIR:
+    uv run python -m cli.main ingest --dir {{DIR}}
+
+# Ingest with reindex (recreate tables)
+ingest-reindex:
+    uv run python -m cli.main ingest --reindex
 
 # Search transcripts
-cli-search QUERY:
+search QUERY:
     uv run python -m cli.main search "{{QUERY}}"
 
-# Vector search with CLI
-cli-search-vector QUERY LIMIT="10":
+# Vector search
+search-vector QUERY LIMIT="10":
     uv run python -m cli.main search "{{QUERY}}" --vector --limit {{LIMIT}}
 
 # Check episode status
-cli-status EPISODE:
+status EPISODE:
     uv run python -m cli.main status {{EPISODE}}
 
 # List episodes
-cli-list LIMIT="20":
+list LIMIT="20":
     uv run python -m cli.main list --limit {{LIMIT}}
-
-# Transcribe episode via CLI
-cli-transcribe EPISODE:
-    uv run python -m cli.main transcribe {{EPISODE}}
-
-# Ingest transcript file via CLI
-cli-ingest FILE:
-    uv run python -m cli.main ingest {{FILE}}
-
-# Legacy Transcription Commands (using old src structure)
-
-# Transcribe latest episode
-transcribe-latest:
-    uv run python -m cli.main transcribe latest
-
-# Transcribe specific episodes (e.g., just transcribe-episodes 100 101 102)
-transcribe-episodes EPISODES:
-    uv run python -m cli.main transcribe {{EPISODES}}
-
-# Transcribe episodes in a range (e.g., just transcribe-range 100 105)
-transcribe-range START END:
-    uv run python -m cli.main transcribe {{START}}-{{END}}
-
-# Transcribe all episodes (with confirmation)
-transcribe-all:
-    uv run python -m cli.main transcribe all
-
-# Transcribe a local audio file
-transcribe-file FILE OUTPUT:
-    uv run python -m cli.main transcribe-file {{FILE}} --output {{OUTPUT}}
-
-# Data Ingestion Commands
-
-# Load all transcript files into PostgreSQL
-upload:
-    uv run python -m cli.main ingest
-
-# Load specific transcript files
-upload-files FILES:
-    uv run python -m cli.main ingest {{FILES}}
-
-# Load transcripts with table reindexing
-upload-reindex:
-    uv run python -m cli.main ingest --reindex
 
 # Code Quality Commands
 
@@ -214,18 +198,6 @@ docker-logs-service SERVICE:
 docker-restart:
     docker-compose restart
 
-# Run ingestion manually (Local CLI)
-ingest:
-    uv run conduit ingest
-
-# Ingest a single transcript file
-ingest-file FILE:
-    uv run conduit ingest {{FILE}}
-
-# Ingest files from a specific directory
-ingest-dir DIR:
-    uv run conduit ingest --dir {{DIR}}
-
 # Initialize database manually (enable extension, create tables)
 setup-db:
     docker-compose exec -T postgres psql -U postgres -d postgres < infra/init-db.sql
@@ -248,7 +220,7 @@ docker-rebuild: docker-down docker-build docker-up
     uv run python -m cli.main transcribe --help
 
 # Show help for ingest command
-@help-upload:
+@help-ingest:
     uv run python -m cli.main ingest --help
 
 # Show help for bd
@@ -275,7 +247,6 @@ docker-rebuild: docker-down docker-build docker-up
     echo "  docker-logs          - View logs for all services"
     echo "  docker-logs-service  - View logs for specific service"
     echo "  docker-restart       - Restart all services"
-    echo "  docker-ingest        - Run ingestion manually"
     echo "  docker-psql          - Access PostgreSQL shell"
     echo "  docker-status        - Show service status"
     echo "  docker-rebuild       - Rebuild and restart all services"
