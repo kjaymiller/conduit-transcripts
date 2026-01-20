@@ -213,6 +213,104 @@ async def update_episode_transcript(
         )
 
 
+@router.post(
+    "/episodes/{episode_number}/transcribe",
+    response_model=EpisodeResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def transcribe_episode(
+    episode_number: int,
+    background_tasks: BackgroundTasks,
+    podcast_id: int = Query(1, description="Podcast ID"),
+    feed_url: Optional[str] = Query(None, description="Override RSS feed URL"),
+):
+    """
+    Trigger transcription for a specific episode.
+    """
+    from podcast_transcription_core.utils.rss import (
+        fetch_episode_by_number,
+        CONDUIT_RSS_FEED,
+    )
+    from podcast_transcription_core.models import Transcript
+    import frontmatter
+
+    db = VectorDatabase()
+
+    # Update feed URL if provided
+    if feed_url:
+        db.update_podcast_feed_url(podcast_id, feed_url)
+
+    # Get current feed URL from DB
+    podcast = db.get_podcast(podcast_id)
+    current_feed_url = (
+        podcast.feed_url if podcast and podcast.feed_url else CONDUIT_RSS_FEED
+    )
+
+    # Check if exists and completed
+    session = db.Session()
+    existing_transcript = (
+        session.query(Transcript)
+        .filter(
+            Transcript.episode_number == episode_number,
+            Transcript.podcast == podcast_id,
+        )
+        .first()
+    )
+    session.close()
+
+    if existing_transcript and existing_transcript.processing_status == "completed":
+        # Return existing
+        return await get_episode(episode_number, "Conduit")
+
+    # Fetch episode details
+    episode_data = fetch_episode_by_number(episode_number, current_feed_url)
+    if not episode_data:
+        raise HTTPException(
+            status_code=404, detail=f"Episode {episode_number} not found in RSS feed"
+        )
+
+    # If it exists but failed or is new, we proceed
+
+    if not existing_transcript:
+        # Create placeholder
+        post = frontmatter.Post(content="")
+        post.metadata = {
+            "title": episode_data["title"],
+            "episode_number": episode_number,
+            "description": episode_data["description"],
+            "url": episode_data["url"],
+            "pub_date": episode_data["pub_date"],
+            "audio_url": episode_data["audio_url"],
+        }
+        db.process_frontmatter_post(post)
+
+    # Set status
+    db.set_transcript_status(podcast_id, episode_number, "processing")
+
+    # Add background task
+    background_tasks.add_task(
+        process_new_episode_transcription,
+        podcast_id,
+        episode_number,
+        episode_data["audio_url"],
+    )
+
+    # Return placeholder/status
+    return EpisodeResponse(
+        episode_number=episode_number,
+        podcast="Conduit",
+        metadata=EpisodeMetadata(
+            title=episode_data["title"],
+            description=episode_data["description"],
+            url=episode_data["url"],
+            pub_date=str(episode_data["pub_date"]),
+        ),
+        content="",
+        chunks_count=0,
+        processing_status="processing",
+    )
+
+
 @router.get("/search/vector", response_model=SearchResponse)
 async def vector_search(
     query: str = Query(..., description="Search query text"),
