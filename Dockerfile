@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
   libpq5 \
   build-essential \
   curl \
+  ffmpeg \
   && rm -rf /var/lib/apt/lists/*
 
 # Copy podcast_transcription module first
