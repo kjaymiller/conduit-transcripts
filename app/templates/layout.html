@@ -16,6 +16,9 @@
                 <div class="flex space-x-4">
                     <a href="/" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Search</a>
                     <a href="/episodes" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Episodes</a>
+                    <form action="/episodes/load-latest" method="post" class="inline">
+                        <button type="submit" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium cursor-pointer" onclick="return confirm('Load latest episode? This will run in the background.');">Load Latest</button>
+                    </form>
                 </div>
             </div>
         </div>

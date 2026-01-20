@@ -1,7 +1,6 @@
 from typing import Optional
-from fastapi import FastAPI, Request
-
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from contextlib import asynccontextmanager
@@ -75,6 +74,79 @@ async def episodes_list(
             "end_date": end_date,
         },
     )
+
+
+@app.post("/episodes/load-latest", response_class=RedirectResponse)
+async def load_latest_episode(background_tasks: BackgroundTasks):
+    """Load and transcribe the latest episode in the background."""
+    from podcast_transcription_core.utils.rss import (
+        fetch_latest_episode_details,
+        CONDUIT_RSS_FEED,
+    )
+    from podcast_transcription_core.database.postgres import VectorDatabase
+    from podcast_transcription_core.models import Transcript
+    from app.api.routes import process_new_episode_transcription
+    import frontmatter
+
+    db = VectorDatabase()
+
+    # Fetch latest episode from RSS
+    try:
+        latest_ep_data = fetch_latest_episode_details(CONDUIT_RSS_FEED)
+    except Exception as e:
+        # In a real app, we might want to flash an error message
+        print(f"Error fetching RSS feed: {e}")
+        return RedirectResponse(url="/episodes", status_code=303)
+
+    episode_number = latest_ep_data["episode_number"]
+    podcast_id = 1  # Default to Conduit
+
+    # Check if exists in DB
+    session = db.Session()
+    existing_transcript = (
+        session.query(Transcript)
+        .filter(
+            Transcript.episode_number == episode_number,
+            Transcript.podcast == podcast_id,
+        )
+        .first()
+    )
+    session.close()
+
+    if existing_transcript:
+        # Already exists, redirect to it
+        return RedirectResponse(url=f"/episode/{episode_number}", status_code=303)
+
+    # It's new! Start background task
+
+    # Create basic frontmatter post to initialize record
+    post = frontmatter.Post(content="")
+    post.metadata = {
+        "title": latest_ep_data["title"],
+        "episode_number": episode_number,
+        "description": latest_ep_data["description"],
+        "url": latest_ep_data["url"],
+        "pub_date": latest_ep_data["pub_date"],
+        "audio_url": latest_ep_data["audio_url"],
+    }
+
+    # This will create the record with empty content
+    db.process_frontmatter_post(post)
+
+    # Set status to processing
+    db.set_transcript_status(podcast_id, episode_number, "processing")
+
+    # Add background task for transcription
+    background_tasks.add_task(
+        process_new_episode_transcription,
+        podcast_id,
+        episode_number,
+        latest_ep_data["audio_url"],
+    )
+
+    # Redirect to the new episode page (which should show it's processing if the template supports it)
+    # Or redirect to episodes list
+    return RedirectResponse(url=f"/episode/{episode_number}", status_code=303)
 
 
 @app.get("/episode/{episode_number}", response_class=HTMLResponse)
