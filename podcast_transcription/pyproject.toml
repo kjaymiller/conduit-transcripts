@@ -28,6 +28,7 @@ dependencies = [
   "sentence-transformers>=5.2.0",
   "langchain-ollama>=1.0.1",
   "mcp>=1.25.0",
+  "valkey>=6.0.0",
 ]
 
 [tool.setuptools]

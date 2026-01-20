@@ -40,8 +40,7 @@ async def check_latest_episode(
         fetch_latest_episode_details,
         CONDUIT_RSS_FEED,
     )
-    from podcast_transcription_core.transcription.audio import download_audio_file
-    from podcast_transcription_core.transcription.core import HybridTranscriber
+    from podcast_transcription_core.utils.queue import enqueue_transcription_job
     import frontmatter
     import os
 
@@ -100,9 +99,8 @@ async def check_latest_episode(
     # Set status to processing
     db.set_transcript_status(podcast_id, episode_number, "processing")
 
-    # Add background task for transcription
-    background_tasks.add_task(
-        process_new_episode_transcription,
+    # Enqueue job to Valkey
+    enqueue_transcription_job(
         podcast_id,
         episode_number,
         latest_ep_data["audio_url"],
@@ -122,56 +120,6 @@ async def check_latest_episode(
         chunks_count=0,
         processing_status="processing",
     )
-
-
-def process_new_episode_transcription(
-    podcast_id: int, episode_number: int, audio_url: str
-):
-    """Background task to download, transcribe, and index a new episode."""
-    from podcast_transcription_core.transcription.audio import download_audio_file
-    from podcast_transcription_core.transcription.core import HybridTranscriber
-    import os
-    import logging
-
-    logger = logging.getLogger(__name__)
-    db = VectorDatabase()
-
-    try:
-        logger.info(f"Starting processing for episode {episode_number}")
-        logger.info(f"Audio URL: {audio_url}")
-
-        # 1. Download audio
-        if not audio_url:
-            raise ValueError("No audio URL provided")
-
-        logger.info(f"Downloading audio file for episode {episode_number}...")
-        audio_path = download_audio_file(audio_url)
-        logger.info(f"Audio downloaded to: {audio_path}")
-
-        # 2. Transcribe
-        logger.info(f"Initializing transcriber for episode {episode_number}...")
-        transcriber = HybridTranscriber(model="base")
-        logger.info(f"Starting transcription for episode {episode_number}...")
-        transcript_text = transcriber.transcribe(audio_path)
-        logger.info(
-            f"Transcription completed for episode {episode_number}. Length: {len(transcript_text)}"
-        )
-
-        # 3. Cleanup audio file
-        if audio_path.exists():
-            logger.info(f"Cleaning up audio file: {audio_path}")
-            os.unlink(audio_path)
-
-        # 4. Update DB with content (this also chunks it and sets status to completed)
-        logger.info(f"Updating database for episode {episode_number}...")
-        db.update_transcript_content(podcast_id, episode_number, transcript_text)
-        logger.info(f"Database update complete for episode {episode_number}")
-
-    except Exception as e:
-        logger.error(
-            f"Error processing new episode {episode_number}: {e}", exc_info=True
-        )
-        db.set_transcript_status(podcast_id, episode_number, "error")
 
 
 def run_transcript_update(episode_number: int, content: str):
@@ -248,6 +196,7 @@ async def transcribe_episode(
         fetch_episode_by_number,
         CONDUIT_RSS_FEED,
     )
+    from podcast_transcription_core.utils.queue import enqueue_transcription_job
     from podcast_transcription_core.models import Transcript
     import frontmatter
 
@@ -304,9 +253,8 @@ async def transcribe_episode(
     # Set status
     db.set_transcript_status(podcast_id, episode_number, "processing")
 
-    # Add background task
-    background_tasks.add_task(
-        process_new_episode_transcription,
+    # Enqueue job to Valkey
+    enqueue_transcription_job(
         podcast_id,
         episode_number,
         episode_data["audio_url"],

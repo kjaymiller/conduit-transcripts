@@ -11,10 +11,6 @@ services:
       - "traefik.http.routers.conduit-app.tls.certresolver=letsencrypt"
       - "traefik.http.services.conduit-app.loadbalancer.server.port=8000"
       - "traefik.docker.network=traefik_default"
-      - "kuma.app.group.name=Conduit Server"
-      - "kuma.app.http.name=Health Check"
-      - "kuma.app.http.parent_name=app"
-      - "kuma.app.http.url=https://conduit.kjaymiller.dev/health"
 
 networks:
   traefik_default:

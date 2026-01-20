@@ -25,6 +25,23 @@ services:
         fluentd-address: localhost:24224
         tag: docker.{{.Name}}
 
+  valkey:
+    image: valkey/valkey:8
+    container_name: conduit-valkey
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - conduit-network
+      - logging
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: docker.{{.Name}}
+
   # FastAPI app (also contains CLI and MCP server)
   app:
     build:
@@ -37,6 +54,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB_NAME:-transcripts}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      VALKEY_HOST: valkey
+      VALKEY_PORT: 6379
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-https://ai.kjaymiller.dev}
       LLM_MODEL: ${LLM_MODEL:-llama3}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
@@ -54,6 +73,44 @@ services:
       - ./podcast_transcription:/app/podcast_transcription:rw
       - ./transcripts:/app/transcripts:rw
       - ./app/templates:/app/app/templates:ro
+      - whisper_cache:/root/.cache/whisper:rw
+    networks:
+      - conduit-network
+      - logging
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: docker.{{.Name}}
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: conduit-worker
+    entrypoint: ["uv", "run", "python", "-m", "podcast_transcription.worker"]
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB_NAME:-transcripts}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      VALKEY_HOST: valkey
+      VALKEY_PORT: 6379
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-https://ai.kjaymiller.dev}
+      LLM_MODEL: ${LLM_MODEL:-llama3}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-ollama}
+      EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-cpu}
+      TRANSCRIPTION_MODEL: ${TRANSCRIPTION_MODEL:-base}
+    depends_on:
+      valkey:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./podcast_transcription:/app/podcast_transcription:rw
+      - ./transcripts:/app/transcripts:rw
       - whisper_cache:/root/.cache/whisper:rw
     networks:
       - conduit-network
