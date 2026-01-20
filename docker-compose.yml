@@ -54,6 +54,7 @@ services:
       - ./podcast_transcription:/app/podcast_transcription:rw
       - ./transcripts:/app/transcripts:rw
       - ./app/templates:/app/app/templates:ro
+      - whisper_cache:/root/.cache/whisper:rw
     networks:
       - conduit-network
       - logging
@@ -65,6 +66,8 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+  whisper_cache:
     driver: local
 
 networks:
