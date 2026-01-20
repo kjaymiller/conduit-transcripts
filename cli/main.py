@@ -445,33 +445,6 @@ def ingest(files: typing.Tuple[str, ...], directory: str, reindex: bool):
 
 
 @cli.command()
-@click.pass_context
-def menu(ctx):
-    """Interactive menu for Conduit Transcripts."""
-    from rich.prompt import Prompt
-
-    while True:
-        console.print("\n[bold cyan]Conduit Transcripts Menu[/bold cyan]")
-        console.print("1. Load Latest Episode")
-        console.print("2. Exit")
-
-        choice = Prompt.ask("Select an option", choices=["1", "2"], default="1")
-
-        if choice == "1":
-            console.print("[bold green]Loading latest episode...[/bold green]")
-            ctx.invoke(
-                transcribe,
-                episodes=("latest",),
-                model="base",
-                prefer_mlx=False,
-                ingest=True,
-            )
-        elif choice == "2":
-            console.print("[yellow]Goodbye![/yellow]")
-            break
-
-
-@cli.command()
 @click.option("--limit", "-l", default=20, help="Maximum episodes to show")
 def list(limit: int):
     """List episodes."""
