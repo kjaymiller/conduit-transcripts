@@ -18,6 +18,12 @@ services:
 
     networks:
       - conduit-network
+      - logging
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: docker.{{.Name}}
 
   # FastAPI app (also contains CLI and MCP server)
   app:
@@ -37,6 +43,8 @@ services:
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-ollama}
       EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-cpu}
       TRANSCRIPTION_MODEL: ${TRANSCRIPTION_MODEL:-base}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -48,6 +56,12 @@ services:
       - ./app/templates:/app/app/templates:ro
     networks:
       - conduit-network
+      - logging
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: docker.{{.Name}}
 
 volumes:
   postgres_data:
@@ -56,3 +70,6 @@ volumes:
 networks:
   conduit-network:
     driver: bridge
+  logging:
+    external: true
+    name: fluentd-logging_logging
