@@ -29,6 +29,16 @@ class VectorDatabase:
         """
         self.engine = create_engine(settings.postgres_uri)
 
+        # Create database if it doesn't exist
+        try:
+            with self.engine.connect() as conn:
+                pass
+        except Exception as e:
+            if "does not exist" in str(e):
+                self._create_database()
+            else:
+                raise e
+
         # Create pgvector extension
         with self.engine.connect() as conn:
             conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
@@ -61,6 +71,32 @@ class VectorDatabase:
                 model_kwargs={"device": settings.EMBEDDING_DEVICE},
                 encode_kwargs={"normalize_embeddings": False},
             )
+
+    def _create_database(self):
+        """Create the database if it doesn't exist."""
+        # Connect to default 'postgres' database
+        default_uri = settings.postgres_uri.replace(
+            f"/{settings.POSTGRES_DB}", "/postgres"
+        )
+        engine = create_engine(default_uri, isolation_level="AUTOCOMMIT")
+
+        try:
+            with engine.connect() as conn:
+                # Check if database exists
+                result = conn.execute(
+                    text(
+                        f"SELECT 1 FROM pg_database WHERE datname = '{settings.POSTGRES_DB}'"
+                    )
+                )
+                if not result.scalar():
+                    logger.info(f"Creating database {settings.POSTGRES_DB}...")
+                    conn.execute(text(f"CREATE DATABASE {settings.POSTGRES_DB}"))
+                    logger.info(f"Database {settings.POSTGRES_DB} created successfully")
+        except Exception as e:
+            logger.error(f"Error creating database: {e}")
+            raise
+        finally:
+            engine.dispose()
 
     def set_transcript_status(
         self, podcast_id: int, episode_number: int, status: str
