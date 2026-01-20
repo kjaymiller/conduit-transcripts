@@ -158,3 +158,17 @@ def fetch_latest_episode_details(feed_url: str = CONDUIT_RSS_FEED) -> Dict:
         Latest episode dictionary with metadata
     """
     return fetch_latest_episode(feed_url)
+
+
+def fetch_latest_episode_number(feed_url: str = CONDUIT_RSS_FEED) -> int:
+    """
+    Fetch the latest episode number from the feed.
+
+    Args:
+        feed_url: URL of the RSS feed
+
+    Returns:
+        Latest episode number
+    """
+    episode = fetch_latest_episode(feed_url)
+    return episode["episode_number"]
