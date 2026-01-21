@@ -77,7 +77,7 @@ async def episodes_list(
 
 
 @app.post("/episodes/load-latest", response_class=RedirectResponse)
-async def load_latest_episode(background_tasks: BackgroundTasks):
+async def load_latest_episode():
     """Load and transcribe the latest episode in the background."""
     from podcast_transcription_core.utils.rss import (
         fetch_latest_episode_details,
@@ -85,7 +85,7 @@ async def load_latest_episode(background_tasks: BackgroundTasks):
     )
     from podcast_transcription_core.database.postgres import VectorDatabase
     from podcast_transcription_core.models import Transcript
-    from app.api.routes import process_new_episode_transcription
+    from podcast_transcription_core.utils.queue import enqueue_transcription_job
     import frontmatter
 
     db = VectorDatabase()
@@ -136,9 +136,8 @@ async def load_latest_episode(background_tasks: BackgroundTasks):
     # Set status to processing
     db.set_transcript_status(podcast_id, episode_number, "processing")
 
-    # Add background task for transcription
-    background_tasks.add_task(
-        process_new_episode_transcription,
+    # Enqueue job to Valkey
+    enqueue_transcription_job(
         podcast_id,
         episode_number,
         latest_ep_data["audio_url"],

@@ -41,7 +41,15 @@ def process_new_episode_transcription(
 
         # 4. Update DB with content (this also chunks it and sets status to completed)
         logger.info(f"Updating database for episode {episode_number}...")
-        db.update_transcript_content(podcast_id, episode_number, transcript_text)
+        success = db.update_transcript_content(
+            podcast_id, episode_number, transcript_text
+        )
+
+        if not success:
+            raise RuntimeError(
+                f"Failed to update database for episode {episode_number}"
+            )
+
         logger.info(f"Database update complete for episode {episode_number}")
 
     except Exception as e:
