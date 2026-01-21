@@ -11,7 +11,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("worker")
 
-from podcast_transcription_core.utils.queue import dequeue_job
+from podcast_transcription_core.utils.queue import dequeue_job, update_job_status
 from podcast_transcription_core.transcription.service import (
     process_new_episode_transcription,
 )
@@ -40,16 +40,38 @@ def run_worker():
             if job:
                 logger.info(f"Received job: {job}")
 
+                job_id = job.get("job_id")
                 podcast_id = job.get("podcast_id")
                 episode_number = job.get("episode_number")
                 audio_url = job.get("audio_url")
 
+                if job_id:
+                    update_job_status(job_id, "processing")
+
                 if podcast_id and episode_number and audio_url:
-                    process_new_episode_transcription(
-                        podcast_id, episode_number, audio_url
-                    )
+                    try:
+                        process_new_episode_transcription(
+                            podcast_id, episode_number, audio_url
+                        )
+                        if job_id:
+                            update_job_status(
+                                job_id, "completed", ttl=86400
+                            )  # 24 hours
+                    except Exception as e:
+                        if job_id:
+                            update_job_status(
+                                job_id, "failed", result={"error": str(e)}, ttl=86400
+                            )  # 24 hours
+                        raise e  # Re-raise to be caught by outer loop and logged
                 else:
                     logger.error("Invalid job data: missing required fields")
+                    if job_id:
+                        update_job_status(
+                            job_id,
+                            "failed",
+                            result={"error": "Missing required fields"},
+                            ttl=86400,
+                        )
 
             # If no job, loop continues immediately (after timeout)
 

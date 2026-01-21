@@ -33,6 +33,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    volumes:
+      - valkey_data:/data
     networks:
       - conduit-network
       - logging
@@ -123,6 +125,8 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+  valkey_data:
     driver: local
   whisper_cache:
     driver: local
