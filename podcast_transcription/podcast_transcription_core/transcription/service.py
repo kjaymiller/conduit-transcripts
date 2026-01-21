@@ -2,7 +2,7 @@ import os
 import logging
 from podcast_transcription_core.database.postgres import VectorDatabase
 from podcast_transcription_core.transcription.audio import download_audio_file
-from podcast_transcription_core.transcription.core import HybridTranscriber
+from podcast_transcription_core.transcription.core import ParakeetTranscriber
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ def process_new_episode_transcription(
 
         # 2. Transcribe
         logger.info(f"Initializing transcriber for episode {episode_number}...")
-        transcriber = HybridTranscriber(model="base")
+        transcriber = ParakeetTranscriber()
         logger.info(f"Starting transcription for episode {episode_number}...")
         transcript_text = transcriber.transcribe(audio_path)
         logger.info(

@@ -245,18 +245,14 @@ def download(episodes: typing.Tuple[str, ...], output_dir: str):
 @cli.command()
 @click.argument("episodes", nargs=-1, required=True)
 @click.option(
-    "--model", "-m", default="base", help="Model size", envvar="TRANSCRIPTION_MODEL"
-)
-@click.option(
-    "--prefer-mlx/--no-mlx",
-    default=False,
-    help="Prefer MLX",
-    envvar="TRANSCRIBE_PREFER_MLX",
+    "--model",
+    "-m",
+    default="nvidia/parakeet-rnnt-1.1b",
+    help="Model name",
+    envvar="TRANSCRIPTION_MODEL",
 )
 @click.option("--ingest/--no-ingest", default=True, help="Ingest after transcription")
-def transcribe(
-    episodes: typing.Tuple[str, ...], model: str, prefer_mlx: bool, ingest: bool
-):
+def transcribe(episodes: typing.Tuple[str, ...], model: str, ingest: bool):
     """Transcribe an episode."""
     try:
         from podcast_transcription_core.transcription.metadata import (
@@ -290,9 +286,9 @@ def transcribe(
 
             # Transcribe
             console.print(f"[blue]Transcribing with {model} model...[/blue]")
-            from podcast_transcription_core.transcription import HybridTranscriber
+            from podcast_transcription_core.transcription import ParakeetTranscriber
 
-            transcriber = HybridTranscriber(model=model, prefer_mlx=prefer_mlx)
+            transcriber = ParakeetTranscriber(model=model)
             transcription = transcriber.transcribe(audio_file)
 
             # Save transcription
@@ -337,25 +333,21 @@ def transcribe(
 @cli.command(name="transcribe-file")
 @click.argument("file_path", type=click.Path(exists=True))
 @click.option(
-    "--model", "-m", default="base", help="Model size", envvar="TRANSCRIPTION_MODEL"
-)
-@click.option(
-    "--prefer-mlx/--no-mlx",
-    default=False,
-    help="Prefer MLX",
-    envvar="TRANSCRIBE_PREFER_MLX",
+    "--model",
+    "-m",
+    default="nvidia/parakeet-rnnt-1.1b",
+    help="Model name",
+    envvar="TRANSCRIPTION_MODEL",
 )
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
-def transcribe_file(
-    file_path: str, model: str, prefer_mlx: bool, output: typing.Optional[str]
-):
+def transcribe_file(file_path: str, model: str, output: typing.Optional[str]):
     """Transcribe a local audio file."""
     try:
         file_path_obj = pathlib.Path(file_path)
         console.print(f"[blue]Transcribing {file_path} with {model} model...[/blue]")
-        from podcast_transcription_core.transcription import HybridTranscriber
+        from podcast_transcription_core.transcription import ParakeetTranscriber
 
-        transcriber = HybridTranscriber(model=model, prefer_mlx=prefer_mlx)
+        transcriber = ParakeetTranscriber(model=model)
         transcription = transcriber.transcribe(file_path_obj)
 
         if output:

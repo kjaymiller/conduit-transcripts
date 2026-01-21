@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
   build-essential \
   curl \
   ffmpeg \
+  libsndfile1 \
   && rm -rf /var/lib/apt/lists/*
 
 # Copy podcast_transcription module first

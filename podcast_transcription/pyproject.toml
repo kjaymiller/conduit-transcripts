@@ -11,7 +11,7 @@ license = "MIT"
 authors = [{ name = "Jay Miller", email = "kjaymiller@gmail.com" }]
 
 dependencies = [
-  "openai-whisper>=20241126",
+  "nemo_toolkit[asr]>=1.23.0",
   "httpx>=0.24.0",
   "python-multipart",
   "sqlalchemy>=2.0.0",

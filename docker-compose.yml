@@ -63,7 +63,7 @@ services:
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-ollama}
       EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-cpu}
-      TRANSCRIPTION_MODEL: ${TRANSCRIPTION_MODEL:-base}
+      TRANSCRIPTION_MODEL: ${TRANSCRIPTION_MODEL:-nvidia/parakeet-rnnt-1.1b}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -75,7 +75,7 @@ services:
       - ./podcast_transcription:/app/podcast_transcription:rw
       - ./transcripts:/app/transcripts:rw
       - ./app/templates:/app/app/templates:ro
-      - whisper_cache:/root/.cache/whisper:rw
+      - nemo_cache:/root/.cache:rw
     networks:
       - conduit-network
       - logging
@@ -104,7 +104,7 @@ services:
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-ollama}
       EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-cpu}
-      TRANSCRIPTION_MODEL: ${TRANSCRIPTION_MODEL:-base}
+      TRANSCRIPTION_MODEL: ${TRANSCRIPTION_MODEL:-nvidia/parakeet-rnnt-1.1b}
     depends_on:
       valkey:
         condition: service_healthy
@@ -113,7 +113,7 @@ services:
     volumes:
       - ./podcast_transcription:/app/podcast_transcription:rw
       - ./transcripts:/app/transcripts:rw
-      - whisper_cache:/root/.cache/whisper:rw
+      - nemo_cache:/root/.cache:rw
     networks:
       - conduit-network
       - logging
@@ -128,7 +128,7 @@ volumes:
     driver: local
   valkey_data:
     driver: local
-  whisper_cache:
+  nemo_cache:
     driver: local
 
 networks:

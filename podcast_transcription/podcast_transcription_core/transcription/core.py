@@ -1,10 +1,8 @@
-"""Transcription abstraction layer with MLX support and Whisper fallback."""
+"""Transcription abstraction layer with Parakeet support."""
 
 import logging
-import os
 import pathlib
 import typing
-import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -17,137 +15,93 @@ class TranscriptionBackend:
         raise NotImplementedError
 
 
-class MLXTranscriber(TranscriptionBackend):
-    """MLX-based transcriber (Apple Silicon optimized)."""
+class ParakeetTranscriber(TranscriptionBackend):
+    """NVIDIA Parakeet transcriber using NeMo toolkit."""
 
-    def __init__(self, model: str = "base"):
-        """Initialize MLX transcriber.
+    def __init__(self, model: str = "nvidia/parakeet-rnnt-1.1b"):
+        """Initialize Parakeet transcriber.
 
         Args:
-            model: Model size (tiny, base, small, medium, large)
+            model: NeMo model name (default: nvidia/parakeet-rnnt-1.1b)
+                   If "base", "small", etc. are passed (Whisper legacy),
+                   it defaults to the standard Parakeet model.
         """
-        try:
-            import mlx_whisper
+        # Handle legacy Whisper model names
+        if model in [
+            "tiny",
+            "base",
+            "small",
+            "medium",
+            "large",
+            "large-v2",
+            "large-v3",
+        ]:
+            logger.warning(
+                f"Legacy Whisper model '{model}' requested. Using default Parakeet model."
+            )
+            model = "nvidia/parakeet-rnnt-1.1b"
 
-            self.mlx_whisper = mlx_whisper
-            self.model = model
-            logger.info(f"MLX Whisper initialized with model: {model}")
+        self.model_name = model
+
+        try:
+            import nemo.collections.asr as nemo_asr
+            import torch
         except ImportError:
             raise ImportError(
-                "mlx-whisper not installed. Install with: pip install mlx-whisper"
+                "nemo_toolkit[asr] not installed. Install with: pip install nemo_toolkit[asr]"
             )
 
-    def transcribe(self, audio_path: pathlib.Path) -> str:
-        """Transcribe using MLX."""
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.info(f"Parakeet initialized on device: {self.device}")
+
         try:
-            logger.info(f"Transcribing with MLX ({self.model} model)...")
-            result = self.mlx_whisper.transcribe(
-                str(audio_path), model=self.model, verbose=False
+            logger.info(f"Loading Parakeet model: {self.model_name}")
+            # NeMo's ASRModel.from_pretrained() handles auto-resolution of model class
+            self.model = nemo_asr.models.ASRModel.from_pretrained(
+                model_name=self.model_name
             )
-            return result["text"]
+
+            self.model.freeze()
+            self.model.to(self.device)
         except Exception as e:
-            logger.error(f"MLX transcription failed: {e}")
+            logger.error(f"Failed to load Parakeet model {self.model_name}: {e}")
             raise
 
-
-class WhisperTranscriber(TranscriptionBackend):
-    """OpenAI Whisper transcriber (CPU/GPU based)."""
-
-    def __init__(self, model: str = "base"):
-        """Initialize Whisper transcriber.
-
-        Args:
-            model: Model size (tiny, base, small, medium, large)
-        """
+    def transcribe(self, audio_path: pathlib.Path) -> str:
+        """Transcribe using Parakeet."""
         try:
-            import whisper
-
-            self.whisper = whisper
-            self.model = whisper.load_model(model)
-            logger.info(f"OpenAI Whisper initialized with model: {model}")
-        except ImportError:
-            raise ImportError(
-                "openai-whisper not installed. Install with: pip install openai-whisper"
+            logger.info(
+                f"Transcribing {audio_path} with Parakeet ({self.model_name})..."
             )
 
-    def transcribe(self, audio_path: pathlib.Path) -> str:
-        """Transcribe using OpenAI Whisper."""
-        try:
-            logger.info("Transcribing with OpenAI Whisper...")
-            audio = self.whisper.load_audio(str(audio_path))
-            result = self.model.transcribe(audio=audio, verbose=False)
-            return result["text"]
+            # NeMo expects list of paths
+            files = [str(audio_path)]
+
+            # transcribe() method signature depends on model type (CTC vs RNNT)
+            # Most NeMo ASR models support transcribe(paths2audio_files=...)
+            transcriptions = self.model.transcribe(
+                paths2audio_files=files, batch_size=1
+            )
+
+            if isinstance(transcriptions, list) and len(transcriptions) > 0:
+                result = transcriptions[0]
+
+                # RNNT models often return Hypothesis objects
+                if hasattr(result, "text"):
+                    return result.text
+
+                # CTC models usually return plain strings
+                if isinstance(result, str):
+                    return result
+
+                # Fallback for other return types (e.g. tuples)
+                if isinstance(result, tuple):
+                    return result[0]
+
+                return str(result)
+
+            return ""
+
         except Exception as e:
-            logger.error(f"Whisper transcription failed: {e}")
+            logger.error(f"Parakeet transcription failed: {e}")
             raise
-
-
-class HybridTranscriber:
-    """Transcriber that tries MLX first, falls back to Whisper."""
-
-    def __init__(
-        self, model: str = "base", prefer_mlx: typing.Optional[bool] = None
-    ):
-        """Initialize hybrid transcriber.
-
-        Args:
-            model: Model size (tiny, base, small, medium, large)
-            prefer_mlx: If True, try MLX first; if False, use Whisper directly.
-                        If None, defaults to TRANSCRIBE_PREFER_MLX env var (default: False).
-        """
-        self.model = model
-
-        if prefer_mlx is None:
-            prefer_mlx = (
-                os.environ.get("TRANSCRIBE_PREFER_MLX", "false").lower() == "true"
-            )
-
-        self.prefer_mlx = prefer_mlx
-        self._primary_transcriber: typing.Optional[TranscriptionBackend] = None
-        self._fallback_transcriber: typing.Optional[TranscriptionBackend] = None
-
-        self._initialize_transcribers()
-
-    def _initialize_transcribers(self) -> None:
-        """Initialize primary and fallback transcribers."""
-        if self.prefer_mlx:
-            # Try MLX first
-            try:
-                self._primary_transcriber = MLXTranscriber(self.model)
-            except ImportError:
-                logger.warning("MLX not available, falling back to Whisper")
-                self._primary_transcriber = WhisperTranscriber(self.model)
-
-            # Set fallback to Whisper
-            if not isinstance(self._primary_transcriber, WhisperTranscriber):
-                try:
-                    self._fallback_transcriber = WhisperTranscriber(self.model)
-                except ImportError:
-                    logger.warning("Whisper not available as fallback")
-        else:
-            # Use Whisper directly
-            try:
-                self._primary_transcriber = WhisperTranscriber(self.model)
-            except ImportError:
-                raise ImportError("Neither MLX nor Whisper is available")
-
-            # Set fallback to MLX
-            if not isinstance(self._primary_transcriber, MLXTranscriber):
-                try:
-                    self._fallback_transcriber = MLXTranscriber(self.model)
-                except ImportError:
-                    logger.warning("MLX not available as fallback")
-
-    def transcribe(self, audio_path: pathlib.Path) -> str:
-        """Transcribe audio file with fallback support."""
-        if not self._primary_transcriber:
-            raise RuntimeError("No transcriber initialized")
-
-        try:
-            return self._primary_transcriber.transcribe(audio_path)
-        except Exception as e:
-            if self._fallback_transcriber:
-                logger.warning(f"Primary transcriber failed: {e}. Trying fallback...")
-                return self._fallback_transcriber.transcribe(audio_path)
-            else:
-                raise
