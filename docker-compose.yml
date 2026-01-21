@@ -28,8 +28,6 @@ services:
   valkey:
     image: valkey/valkey:8
     container_name: conduit-valkey
-    sysctls:
-      - vm.overcommit_memory=1
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
       interval: 5s
