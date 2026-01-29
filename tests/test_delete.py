@@ -162,3 +162,60 @@ class TestAPIDelete:
 
         assert response.status_code == 200
         session.delete.assert_called_once()
+
+
+class TestWebUIDelete:
+    """Tests for Web UI delete button visibility."""
+
+    @patch("podcast_transcription_core.database.postgres.VectorDatabase")
+    def test_delete_button_visible_with_transcript(self, MockVectorDatabase):
+        """Test delete button is visible when episode has transcript."""
+        session = Mock()
+        MockVectorDatabase.return_value.Session.return_value = session
+
+        mock_transcript = Mock(spec=Transcript)
+        mock_transcript.episode_number = 100
+        mock_transcript.title = "Test Episode"
+        mock_transcript.description = "Test description"
+        mock_transcript.url = "http://example.com"
+        mock_transcript.published_date = None
+        mock_transcript.processing_status = "completed"
+        mock_transcript.chunks = []
+        mock_transcript.meta = {"content": "This is the transcript content"}
+
+        query_mock = session.query.return_value
+        options_mock = query_mock.options.return_value
+        filter_mock = options_mock.filter.return_value
+        filter_mock.first.return_value = mock_transcript
+
+        response = client.get("/episode/100")
+
+        assert response.status_code == 200
+        assert "delete-transcript-btn" in response.text
+
+    @patch("podcast_transcription_core.database.postgres.VectorDatabase")
+    def test_delete_button_visible_without_transcript(self, MockVectorDatabase):
+        """Test delete button is visible when episode has no transcript content."""
+        session = Mock()
+        MockVectorDatabase.return_value.Session.return_value = session
+
+        mock_transcript = Mock(spec=Transcript)
+        mock_transcript.episode_number = 9999
+        mock_transcript.title = "Episode Without Transcript"
+        mock_transcript.description = "This episode has no transcript"
+        mock_transcript.url = "http://example.com"
+        mock_transcript.published_date = None
+        mock_transcript.processing_status = "pending"
+        mock_transcript.chunks = []
+        mock_transcript.meta = {}  # No content
+
+        query_mock = session.query.return_value
+        options_mock = query_mock.options.return_value
+        filter_mock = options_mock.filter.return_value
+        filter_mock.first.return_value = mock_transcript
+
+        response = client.get("/episode/9999")
+
+        assert response.status_code == 200
+        # Should have a delete button even without transcript
+        assert "delete-episode-btn" in response.text
