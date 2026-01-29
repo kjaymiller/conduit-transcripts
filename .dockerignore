@@ -1,0 +1,59 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Build artifacts
+*.egg-info/
+**/*.egg-info/
+.eggs/
+dist/
+build/
+develop-eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg
+MANIFEST
+
+# Environment
+.env
+.env.*
+!.env.example
+.envrc
+
+# IDE
+.idea/
+.vscode/
+
+# Project specific
+.beads/
+transcripts/
+infra/
+tests/
