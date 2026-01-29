@@ -40,7 +40,9 @@ def _parse_episodes(episodes: typing.Tuple[str, ...]) -> typing.List[int]:
         else:
             episode_list.append(int(ep_str))
 
-    return sorted(list(set(episode_list)))
+    # Note: Using sorted(set(...)) directly since `list` builtin is shadowed
+    # by the CLI's list command in this module
+    return sorted(set(episode_list))
 
 
 @click.group(help="Conduit Transcripts CLI")
@@ -477,6 +479,79 @@ def list(limit: int):
 
     except Exception as e:
         console.print(f"[red]Error listing episodes: {e}[/red]")
+        sys.exit(1)
+
+
+@cli.command()
+@click.argument("episodes", nargs=-1, required=True)
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
+def delete(episodes: typing.Tuple[str, ...], yes: bool):
+    """Delete transcripts for episodes.
+
+    EPISODES can be: single number (123), range (100-105), comma-separated (1,3,5),
+    'latest', or 'all'.
+    """
+    try:
+        from podcast_transcription_core.database.postgres import VectorDatabase
+        from podcast_transcription_core.models import Transcript
+
+        episode_list = _parse_episodes(episodes)
+
+        if not episode_list:
+            console.print("[yellow]No episodes specified[/yellow]")
+            sys.exit(0)
+
+        if not yes:
+            console.print(
+                f"[yellow]This will delete transcripts for {len(episode_list)} episode(s):[/yellow]"
+            )
+            console.print(", ".join(map(str, episode_list)))
+            if not click.confirm("Continue?"):
+                console.print("[red]Cancelled[/red]")
+                sys.exit(0)
+
+        db = VectorDatabase()
+        session = db.Session()
+
+        deleted_count = 0
+        not_found_count = 0
+
+        for episode_number in episode_list:
+            try:
+                transcript = (
+                    session.query(Transcript)
+                    .filter(
+                        Transcript.episode_number == episode_number,
+                        Transcript.podcast == 1,
+                    )
+                    .first()
+                )
+
+                if transcript:
+                    session.delete(transcript)
+                    session.commit()
+                    deleted_count += 1
+                    console.print(f"[green]✓ Deleted episode {episode_number}[/green]")
+                else:
+                    not_found_count += 1
+                    console.print(
+                        f"[yellow]✗ Episode {episode_number} not found[/yellow]"
+                    )
+
+            except Exception as e:
+                session.rollback()
+                console.print(
+                    f"[red]Error deleting episode {episode_number}: {e}[/red]"
+                )
+
+        session.close()
+
+        console.print(f"\n[bold]Deleted {deleted_count} transcript(s)[/bold]")
+        if not_found_count > 0:
+            console.print(f"[yellow]{not_found_count} episode(s) not found[/yellow]")
+
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
         sys.exit(1)
 
 

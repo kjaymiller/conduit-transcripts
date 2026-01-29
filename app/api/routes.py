@@ -17,6 +17,7 @@ from .models import (
     EpisodeMetadata,
     ChatRequest,
     TranscriptUpdate,
+    DeleteResponse,
 )
 
 router = APIRouter()
@@ -176,6 +177,53 @@ async def update_episode_transcript(
         raise HTTPException(
             status_code=500, detail=f"Error updating transcript: {str(e)}"
         )
+
+
+@router.delete(
+    "/episode/{episode_number}",
+    response_model=DeleteResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def delete_episode(
+    episode_number: int,
+    podcast_id: int = Query(1, description="Podcast ID"),
+):
+    """Delete transcript and associated vector chunks for an episode."""
+    db = VectorDatabase()
+    session = db.Session()
+
+    try:
+        transcript = (
+            session.query(Transcript)
+            .filter(
+                Transcript.episode_number == episode_number,
+                Transcript.podcast == podcast_id,
+            )
+            .first()
+        )
+
+        if not transcript:
+            raise HTTPException(
+                status_code=404, detail=f"Episode {episode_number} not found"
+            )
+
+        session.delete(transcript)
+        session.commit()
+
+        return DeleteResponse(
+            success=True,
+            message=f"Episode {episode_number} deleted successfully",
+            episode_number=episode_number,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Error deleting episode: {str(e)}"
+        )
+    finally:
+        session.close()
 
 
 @router.post(

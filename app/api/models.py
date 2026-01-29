@@ -64,3 +64,9 @@ class ChatRequest(BaseModel):
 
 class TranscriptUpdate(BaseModel):
     content: str = Field(..., description="The full transcript content to update")
+
+
+class DeleteResponse(BaseModel):
+    success: bool
+    message: str
+    episode_number: int
