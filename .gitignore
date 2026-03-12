@@ -162,3 +162,4 @@ cython_debug/
 .envrc
 .env.docker
 worktrees
+.hist

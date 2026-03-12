@@ -1,7 +1,9 @@
-"""Transcription abstraction layer with Parakeet support."""
+"""Transcription abstraction layer with Parakeet and MLX Whisper support."""
 
 import logging
 import pathlib
+import platform
+import sys
 import typing
 
 logger = logging.getLogger(__name__)
@@ -105,3 +107,83 @@ class ParakeetTranscriber(TranscriptionBackend):
         except Exception as e:
             logger.error(f"Parakeet transcription failed: {e}")
             raise
+
+
+class MLXWhisperTranscriber(TranscriptionBackend):
+    """MLX Whisper transcriber for Apple Silicon Macs."""
+
+    # Map short names to HuggingFace model IDs
+    MODEL_MAP = {
+        "tiny": "mlx-community/whisper-tiny-mlx",
+        "base": "mlx-community/whisper-base-mlx-q4",
+        "small": "mlx-community/whisper-small-mlx",
+        "medium": "mlx-community/whisper-medium-mlx",
+        "large": "mlx-community/whisper-large-v3-mlx",
+        "large-v2": "mlx-community/whisper-large-v2-mlx",
+        "large-v3": "mlx-community/whisper-large-v3-mlx",
+    }
+
+    def __init__(self, model: str = "mlx-community/whisper-large-v3-mlx"):
+        # Map short names to full model IDs
+        if model in self.MODEL_MAP:
+            model = self.MODEL_MAP[model]
+        elif model.startswith("nvidia/"):
+            logger.warning(
+                f"NeMo model '{model}' not supported on MLX. Using default MLX Whisper model."
+            )
+            model = "mlx-community/whisper-large-v3-mlx"
+
+        self.model_name = model
+
+        try:
+            import mlx_whisper  # noqa: F401
+        except ImportError:
+            raise ImportError(
+                "mlx-whisper not installed. Install with: uv add mlx-whisper"
+            )
+
+        logger.info(f"MLX Whisper initialized with model: {self.model_name}")
+
+    def transcribe(self, audio_path: pathlib.Path) -> str:
+        """Transcribe using MLX Whisper."""
+        try:
+            import mlx_whisper
+
+            logger.info(
+                f"Transcribing {audio_path} with MLX Whisper ({self.model_name})..."
+            )
+
+            result = mlx_whisper.transcribe(
+                str(audio_path),
+                path_or_hf_repo=self.model_name,
+            )
+
+            text = result.get("text", "")
+            logger.info(f"MLX Whisper transcription completed. Length: {len(text)}")
+            return text
+
+        except Exception as e:
+            logger.error(f"MLX Whisper transcription failed: {e}")
+            raise
+
+
+def get_transcriber(model: str | None = None) -> TranscriptionBackend:
+    """Factory that returns the appropriate transcriber for the current platform.
+
+    On macOS ARM64, returns MLXWhisperTranscriber.
+    On Linux (or when TRANSCRIBE_PREFER_MLX is explicitly False), returns ParakeetTranscriber.
+    """
+    from podcast_transcription_core.config import settings
+
+    if model is None:
+        model = settings.TRANSCRIPTION_MODEL
+
+    use_mlx = (
+        sys.platform == "darwin"
+        and platform.machine() == "arm64"
+    ) or settings.TRANSCRIBE_PREFER_MLX
+
+    if use_mlx:
+        return MLXWhisperTranscriber(model=model)
+    else:
+        return ParakeetTranscriber(model=model)

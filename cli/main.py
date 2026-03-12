@@ -288,9 +288,9 @@ def transcribe(episodes: typing.Tuple[str, ...], model: str, ingest: bool):
 
             # Transcribe
             console.print(f"[blue]Transcribing with {model} model...[/blue]")
-            from podcast_transcription_core.transcription import ParakeetTranscriber
+            from podcast_transcription_core.transcription import get_transcriber
 
-            transcriber = ParakeetTranscriber(model=model)
+            transcriber = get_transcriber(model=model)
             transcription = transcriber.transcribe(audio_file)
 
             # Save transcription
@@ -347,9 +347,9 @@ def transcribe_file(file_path: str, model: str, output: typing.Optional[str]):
     try:
         file_path_obj = pathlib.Path(file_path)
         console.print(f"[blue]Transcribing {file_path} with {model} model...[/blue]")
-        from podcast_transcription_core.transcription import ParakeetTranscriber
+        from podcast_transcription_core.transcription import get_transcriber
 
-        transcriber = ParakeetTranscriber(model=model)
+        transcriber = get_transcriber(model=model)
         transcription = transcriber.transcribe(file_path_obj)
 
         if output:
