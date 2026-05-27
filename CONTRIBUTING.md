@@ -48,13 +48,13 @@ Before submitting a PR, ensure your code passes quality checks:
 Code must be formatted with ruff:
 
 ```bash
-just fmt  # Format code
+mise run fmt  # Format code
 ```
 
 Or manually:
 
 ```bash
-uv tool run ruff format .
+ruff format .
 ```
 
 ### Linting
@@ -62,31 +62,31 @@ uv tool run ruff format .
 Code must pass ruff linting checks:
 
 ```bash
-just lint  # Check for linting issues
+mise run lint  # Check for linting issues
 ```
 
 Or manually:
 
 ```bash
-uv tool run ruff check .
+ruff check .
 ```
 
 To automatically fix common issues:
 
 ```bash
-just lint-fix
+mise run lint-fix
 ```
 
 Or manually:
 
 ```bash
-uv tool run ruff check . --fix
+ruff check . --fix
 ```
 
 ### Running All Quality Checks
 
 ```bash
-just check  # Runs linting
+mise run check  # Runs linting
 ```
 
 > [!NOTE]

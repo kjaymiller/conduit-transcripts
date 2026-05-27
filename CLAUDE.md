@@ -8,31 +8,32 @@ Conduit Transcripts is a podcast transcript management system for the [Conduit P
 
 ## Development Commands
 
+Tools and tasks are managed by [mise](https://mise.jdx.dev/) (`mise.toml`). Run `mise tasks` to list every task.
+
 ```bash
 # Setup
-uv sync                          # Install dependencies
+mise install                     # Install pinned python/uv/ruff
+mise run setup                   # uv sync
 
 # Testing
-uv run pytest -v                 # Run tests
-just test                        # Alternative via justfile
+mise run test                    # uv run pytest -v
 
 # Linting and formatting
-just fmt                         # Format with ruff
-just lint                        # Lint with ruff
-just check                       # Run all quality checks
+mise run fmt                     # Format with ruff
+mise run lint                    # Lint with ruff
+mise run check                   # Run all quality checks
 
 # CLI commands (local)
-uv run python -m cli.main [command]
-just transcribe <episode>        # Transcribe episode(s)
-just search "query"              # Text search
-just search-vector "query"       # Semantic search
-just list                        # List episodes
-just ingest                      # Ingest transcripts to DB
+mise run transcribe <episode>    # Transcribe episode(s)
+mise run search "query"          # Text search
+mise run search-vector "query"   # Semantic search
+mise run list                    # List episodes
+mise run ingest                  # Ingest transcripts to DB
 
 # Docker (preferred for full stack)
-docker compose up -d             # Start all services
+mise run docker-up               # Start all services
 docker compose run --rm app python -m cli.main [command]
-docker compose logs -f           # View logs
+mise run docker-logs             # View logs
 ```
 
 ## Architecture
@@ -91,7 +92,7 @@ Key settings (see `podcast_transcription_core/config/__init__.py`):
 - `OLLAMA_BASE_URL`: Ollama API URL
 - `TRANSCRIPTION_MODEL`: Parakeet model (default: `nvidia/parakeet-rnnt-1.1b`)
 
-Load with `direnv allow` or `source .envrc`
+Env vars load automatically from `.env` via `mise` when you enter the project directory. Copy `.env.docker.example` to `.env` and fill in secrets.
 
 ## Docker Services
 

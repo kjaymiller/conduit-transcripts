@@ -8,29 +8,32 @@ The text is from the [Conduit Podcast](https://relay.fm/conduit)
 
 ### Installation
 
-This project uses `uv` for fast, reliable Python package management. To set up:
+This project uses [mise](https://mise.jdx.dev/) to manage tool versions (Python, `uv`, `ruff`), environment variables, and tasks.
 
 ```bash
-# Install uv if you don't have it
-curl -LsSf https://astral.sh/uv/install.sh | sh
+# Install mise if you don't have it
+curl https://mise.run | sh
 
-# Install dependencies and create virtual environment
-uv sync
+# Trust the project config and install pinned tools
+mise trust
+mise install
+
+# Install Python dependencies
+mise run setup
 ```
+
+Run `mise tasks` to see every available task.
 
 ### Environment Configuration
 
-Load the environment variables:
+Project secrets live in `.env` (gitignored). Copy the example and fill in values:
 
 ```bash
-# Using direnv (recommended)
-direnv allow
-
-# Or manually source the .envrc file
-source .envrc
+cp .env.docker.example .env
+# edit .env with your connection strings
 ```
 
-The `.envrc` file should contain connection strings for PostgreSQL and other configuration.
+`mise` auto-loads `.env` whenever you enter the project directory — no `direnv` required.
 
 ## Usage
 
@@ -194,7 +197,7 @@ docker compose run --rm app python -m cli.main list
 
 **Virtual environment issues**: Run `uv sync` and ensure you're using `uv run` or have activated the venv
 
-**Missing environment variables**: Load `.envrc` with `direnv allow` or `source .envrc`
+**Missing environment variables**: Ensure `.env` exists at the repo root; `mise` auto-loads it when you `cd` into the project
 
 **Parakeet model**: First run downloads the default model (nvidia/parakeet-rnnt-1.1b) - requires network access
 

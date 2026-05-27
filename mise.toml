@@ -1,0 +1,244 @@
+# mise configuration for conduit-transcripts
+# https://mise.jdx.dev/
+
+[tools]
+python = "3.13"
+uv = "latest"
+ruff = "latest"
+
+[env]
+# Load secrets and overrides from .env (gitignored).
+# Copy .env.docker.example to .env to get started.
+_.file = ".env"
+
+# Auto-activate the uv-managed virtualenv when entering the project.
+_.python.venv = { path = ".venv", create = false }
+
+[settings]
+# Allow project-local mise config to install tools without prompting.
+experimental = true
+
+# -----------------------------------------------------------------------------
+# Setup
+# -----------------------------------------------------------------------------
+
+[tasks.setup]
+description = "Install dependencies with uv"
+run = [
+  "uv sync",
+  "echo '✓ Setup complete. See `mise tasks` for available commands.'",
+]
+
+[tasks.update-deps]
+description = "Update locked dependencies"
+run = [
+  "uv lock --upgrade",
+  "uv sync",
+]
+
+# -----------------------------------------------------------------------------
+# CLI
+# -----------------------------------------------------------------------------
+
+[tasks.download]
+description = "Download audio only (args: EPISODES)"
+run = "uv run python -m cli.main download"
+
+[tasks.transcribe]
+description = "Transcribe and ingest episodes (args: EPISODES)"
+run = "uv run python -m cli.main transcribe"
+
+[tasks."transcribe-only"]
+description = "Transcribe only, no ingest (args: EPISODES)"
+run = "uv run python -m cli.main transcribe --no-ingest"
+
+[tasks."transcribe-file"]
+description = "Transcribe a local file (args: FILE [--output OUTPUT])"
+run = "uv run python -m cli.main transcribe-file"
+
+[tasks.ingest]
+description = "Ingest files (default: all in transcripts/) (args: [FILES...])"
+run = "uv run python -m cli.main ingest"
+
+[tasks."ingest-dir"]
+description = "Ingest a directory (args: DIR)"
+run = "uv run python -m cli.main ingest --dir"
+
+[tasks."ingest-reindex"]
+description = "Ingest with reindex (recreate tables)"
+run = "uv run python -m cli.main ingest --reindex"
+
+[tasks.search]
+description = "Text search transcripts (args: QUERY)"
+run = "uv run python -m cli.main search"
+
+[tasks."search-vector"]
+description = "Vector search transcripts (args: QUERY [--limit N])"
+run = "uv run python -m cli.main search --vector"
+
+[tasks.status]
+description = "Check episode status (args: EPISODE)"
+run = "uv run python -m cli.main status"
+
+[tasks.list]
+description = "List episodes (args: [--limit N])"
+run = "uv run python -m cli.main list"
+
+# -----------------------------------------------------------------------------
+# Code quality
+# -----------------------------------------------------------------------------
+
+[tasks.fmt]
+description = "Format code with ruff"
+run = "ruff format ."
+
+[tasks.lint]
+description = "Lint code with ruff"
+run = "ruff check ."
+
+[tasks."lint-fix"]
+description = "Fix linting issues with ruff"
+run = "ruff check . --fix"
+
+[tasks.check]
+description = "Run all quality checks"
+depends = ["lint"]
+run = "echo '✓ Linting passed'"
+
+# -----------------------------------------------------------------------------
+# Testing
+# -----------------------------------------------------------------------------
+
+[tasks.test]
+description = "Run tests"
+run = "uv run pytest -v"
+
+[tasks."test-coverage"]
+description = "Run tests with coverage"
+run = "uv run pytest --cov=src --cov-report=html"
+
+# -----------------------------------------------------------------------------
+# MCP / API server
+# -----------------------------------------------------------------------------
+
+[tasks."mcp-server"]
+description = "Start MCP server locally"
+run = "uv run uvicorn apps.mcp.server:app --host 0.0.0.0 --port 8000"
+
+[tasks."mcp-server-dev"]
+description = "Start MCP server with auto-reload"
+run = "uv run uvicorn apps.mcp.server:app --host 0.0.0.0 --port 8000 --reload"
+
+[tasks."mcp-health"]
+description = "Test MCP server health endpoint"
+run = "curl http://localhost:8000/health"
+
+[tasks."mcp-search-vector"]
+description = "Test vector search (args: QUERY)"
+run = "curl \"http://localhost:8000/search/vector?query=$1&limit=5\""
+
+[tasks."mcp-search-text"]
+description = "Test text search (args: QUERY)"
+run = "curl \"http://localhost:8000/search/text?query=$1&limit=5\""
+
+# -----------------------------------------------------------------------------
+# Docker
+# -----------------------------------------------------------------------------
+
+[tasks."docker-build"]
+description = "Build all Docker images"
+run = "docker compose build"
+
+[tasks."docker-up"]
+description = "Start all Docker services in background"
+run = "docker compose --env-file .env.docker up -d"
+
+[tasks."docker-up-logs"]
+description = "Start services and follow logs"
+run = "docker compose --env-file .env.docker up"
+
+[tasks."docker-down"]
+description = "Stop all Docker services"
+run = "docker compose down"
+
+[tasks."docker-down-volumes"]
+description = "Stop services and remove volumes (destructive)"
+run = "docker compose down -v"
+
+[tasks."docker-logs"]
+description = "View logs for all services"
+run = "docker compose logs -f"
+
+[tasks."docker-logs-service"]
+description = "View logs for specific service (args: SERVICE)"
+run = "docker compose logs -f"
+
+[tasks."docker-restart"]
+description = "Restart all Docker services"
+run = "docker compose restart"
+
+[tasks."docker-psql"]
+description = "Access PostgreSQL shell"
+run = "docker compose exec postgres psql -U postgres -d postgres"
+
+[tasks."docker-status"]
+description = "Show Docker service status"
+run = "docker compose ps"
+
+[tasks."docker-rebuild"]
+description = "Rebuild and restart services"
+depends = ["docker-down", "docker-build", "docker-up"]
+
+[tasks."setup-db"]
+description = "Initialize database (enable extension, create tables)"
+run = "docker compose exec -T postgres psql -U postgres -d postgres < infra/init-db.sql"
+
+# -----------------------------------------------------------------------------
+# Issue tracking (bd / beads)
+# -----------------------------------------------------------------------------
+
+[tasks."bd-list"]
+description = "List all bd issues"
+run = "bd list"
+
+[tasks."bd-ready"]
+description = "Show ready (unblocked) bd issues"
+run = "bd ready"
+
+[tasks."bd-show"]
+description = "Show bd issue details (args: ISSUE_ID)"
+run = "bd show"
+
+[tasks."bd-create"]
+description = "Create a bd issue (args: TITLE TYPE PRIORITY)"
+run = 'bd create "$1" -t "$2" -p "$3" --json'
+
+[tasks."bd-start"]
+description = "Mark bd issue in_progress (args: ISSUE_ID)"
+run = 'bd update "$1" --status in_progress --json'
+
+[tasks."bd-close"]
+description = "Close a bd issue (args: ISSUE_ID REASON)"
+run = 'bd close "$1" --reason "$2" --json'
+
+# -----------------------------------------------------------------------------
+# Utility
+# -----------------------------------------------------------------------------
+
+[tasks.clean]
+description = "Clean Python cache and build artifacts"
+run = [
+  "find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true",
+  "find . -type f -name '*.pyc' -delete",
+  "find . -type d -name '*.egg-info' -exec rm -rf {} + 2>/dev/null || true",
+  "find . -type d -name '.pytest_cache' -exec rm -rf {} + 2>/dev/null || true",
+  "echo '✓ Cleaned up cache and build artifacts'",
+]
+
+[tasks."py-version"]
+description = "Show Python version"
+run = "python --version"
+
+[tasks."uv-version"]
+description = "Show uv version"
+run = "uv --version"
