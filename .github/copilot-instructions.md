@@ -13,9 +13,10 @@
 
 ## Tech Stack
 
-- **Language**: Python 3.12+
+- **Language**: Python 3.13+
+- **Toolchain Manager**: mise (`mise.toml`)
 - **Package Manager**: uv
-- **Task Runner**: just
+- **Task Runner**: mise tasks
 - **Audio Processing**: MLX Whisper, OpenAI Whisper
 - **Text Processing**: LangChain, HuggingFace embeddings
 - **Databases**: PostgreSQL (pgvector), OpenSearch
@@ -25,14 +26,14 @@
 ## Coding Guidelines
 
 ### Testing
-- Run tests with `just test` or `uv run pytest -v`
-- Use `just test-coverage` for coverage reports
+- Run tests with `mise run test` (wraps `uv run pytest -v`)
+- Use `mise run test-coverage` for coverage reports
 - Always test transcription changes with sample audio
 
 ### Code Style
-- Format with `just fmt` (uses ruff)
-- Lint with `just lint` (uses ruff)
-- Run `just check` before committing
+- Format with `mise run fmt` (uses ruff)
+- Lint with `mise run lint` (uses ruff)
+- Run `mise run check` before committing
 - Follow existing patterns in `src/` directory
 
 ### Git Workflow
@@ -96,7 +97,7 @@ conduit-transcripts/
 │   └── os_index.py      # OpenSearch index setup
 ├── transcripts/         # Generated markdown with frontmatter
 ├── infra/               # Infrastructure config
-├── justfile             # Task runner recipes
+├── mise.toml            # Toolchain, env, and task definitions
 └── .beads/
     ├── beads.db         # SQLite database (DO NOT COMMIT)
     └── issues.jsonl     # Git-synced issue storage
@@ -104,24 +105,24 @@ conduit-transcripts/
 
 ## Available Resources
 
-### Common Commands (via just)
+### Common Commands (via mise)
+
+Run `mise tasks` to discover everything.
 
 ```bash
 # Transcription
-just transcribe-latest              # Transcribe latest episode
-just transcribe-range 100 105       # Transcribe episodes 100-105
+mise run transcribe latest          # Transcribe latest episode
+mise run transcribe 100-105         # Transcribe episodes 100-105
 
 # Data ingestion
-just upload                         # Upload to both databases
-just upload-pg-only                 # PostgreSQL only
-just upload-os-only                 # OpenSearch only
-just upload-reindex                 # Recreate OpenSearch index
+mise run ingest                     # Ingest all transcripts/
+mise run ingest-reindex             # Recreate tables, then ingest
 
 # Code quality
-just fmt                            # Format with ruff
-just lint                           # Lint with ruff
-just check                          # Run all checks
-just test                           # Run tests
+mise run fmt                        # Format with ruff
+mise run lint                       # Lint with ruff
+mise run check                      # Run all checks
+mise run test                       # Run tests
 ```
 
 ### MCP Server (Recommended)
@@ -137,13 +138,13 @@ Use the beads MCP server for native function calls:
 
 ## Environment Setup
 
-Required environment variables (see `.envrc`):
+Required environment variables (place in `.env`):
 - `AIVEN_POSTGRES_SERVICE_URI` - PostgreSQL connection
 - `OPENSEARCH_SERVICE_URI` - OpenSearch connection
 - `POSTGRES_DB_NAME` - Database name
 - `INDEX_NAME` - OpenSearch index name
 
-Load with `direnv allow` or `source .envrc`.
+`mise` auto-loads `.env` when you enter the project directory.
 
 ## CLI Help
 
@@ -155,12 +156,12 @@ For example: `bd create --help` shows `--parent`, `--deps`, `--assignee`, etc.
 - ✅ Use bd for ALL task tracking
 - ✅ Always use `--json` flag for programmatic use
 - ✅ Run `bd sync` at end of sessions
-- ✅ Use `just` commands when available
+- ✅ Use `mise run <task>` commands when available
 - ✅ Run `bd <cmd> --help` to discover available flags
 - ✅ Test with sample audio files before processing all episodes
 - ❌ Do NOT create markdown TODO lists
 - ❌ Do NOT commit `.beads/beads.db` (JSONL only)
-- ❌ Do NOT commit `.envrc` (contains secrets)
+- ❌ Do NOT commit `.env` (contains secrets)
 
 ---
 
